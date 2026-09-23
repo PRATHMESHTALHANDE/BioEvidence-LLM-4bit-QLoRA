@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-09-23T15:33:50.467758+00:00",
+  "total_ingested": 1037,
+  "quality_rejected": 0,
+  "exact_duplicates_removed": 1,
+  "deduplicated_total": 1036,
+  "train_records": 880,
+  "eval_records": 156,
+  "train_unique_articles": 880,
+  "eval_unique_articles": 156,
+  "article_overlap_detected": false,
+  "overlapping_pmids": [],
+  "train_output_path": "data\\processed\\train.jsonl",
+  "eval_output_path": "data\\processed\\eval.jsonl"
+}

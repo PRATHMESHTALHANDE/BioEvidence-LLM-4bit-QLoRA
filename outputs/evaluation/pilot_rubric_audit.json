@@ -1,0 +1,120 @@
+{
+  "dataset": "data\\sft\\BioEvidence-SFT-v0.1.jsonl",
+  "total_audited": 100,
+  "pass_count": 100,
+  "needs_review_count": 0,
+  "fail_count": 0,
+  "pass_rate": "100.0%",
+  "sample_verdicts": [
+    {
+      "sample_id": "bioev_pubmedqa_16428354",
+      "task": "evidence_qa",
+      "status": "PASS",
+      "checks": {
+        "c1_c3_factual": true,
+        "c2_verbatim_evidence": true,
+        "c4_uncertainty": true,
+        "c6_valid_json": true
+      }
+    },
+    {
+      "sample_id": "bioev_pubmedqa_25859857",
+      "task": "evidence_qa",
+      "status": "PASS",
+      "checks": {
+        "c1_c3_factual": true,
+        "c2_verbatim_evidence": true,
+        "c4_uncertainty": true,
+        "c6_valid_json": true
+      }
+    },
+    {
+      "sample_id": "bioev_pubmedqa_17890090",
+      "task": "evidence_qa",
+      "status": "PASS",
+      "checks": {
+        "c1_c3_factual": true,
+        "c2_verbatim_evidence": true,
+        "c4_uncertainty": true,
+        "c6_valid_json": true
+      }
+    },
+    {
+      "sample_id": "bioev_pubmedqa_16498158",
+      "task": "evidence_qa",
+      "status": "PASS",
+      "checks": {
+        "c1_c3_factual": true,
+        "c2_verbatim_evidence": true,
+        "c4_uncertainty": true,
+        "c6_valid_json": true
+      }
+    },
+    {
+      "sample_id": "bioev_pubmedqa_19640728",
+      "task": "evidence_qa",
+      "status": "PASS",
+      "checks": {
+        "c1_c3_factual": true,
+        "c2_verbatim_evidence": true,
+        "c4_uncertainty": true,
+        "c6_valid_json": true
+      }
+    },
+    {
+      "sample_id": "bioev_pubmedqa_18540901",
+      "task": "evidence_qa",
+      "status": "PASS",
+      "checks": {
+        "c1_c3_factual": true,
+        "c2_verbatim_evidence": true,
+        "c4_uncertainty": true,
+        "c6_valid_json": true
+      }
+    },
+    {
+      "sample_id": "bioev_pubmedqa_16991071",
+      "task": "evidence_qa",
+      "status": "PASS",
+      "checks": {
+        "c1_c3_factual": true,
+        "c2_verbatim_evidence": true,
+        "c4_uncertainty": true,
+        "c6_valid_json": true
+      }
+    },
+    {
+      "sample_id": "bioev_pubmedqa_26126304",
+      "task": "evidence_qa",
+      "status": "PASS",
+      "checks": {
+        "c1_c3_factual": true,
+        "c2_verbatim_evidence": true,
+        "c4_uncertainty": true,
+        "c6_valid_json": true
+      }
+    },
+    {
+      "sample_id": "bioev_medquad_0000002_7",
+      "task": "evidence_summary",
+      "status": "PASS",
+      "checks": {
+        "c1_c3_factual": true,
+        "c2_verbatim_evidence": true,
+        "c4_uncertainty": true,
+        "c6_valid_json": true
+      }
+    },
+    {
+      "sample_id": "bioev_pubmedqa_27184293",
+      "task": "uncertainty_extraction",
+      "status": "PASS",
+      "checks": {
+        "c1_c3_factual": true,
+        "c2_verbatim_evidence": true,
+        "c4_uncertainty": true,
+        "c6_valid_json": true
+      }
+    }
+  ]
+}

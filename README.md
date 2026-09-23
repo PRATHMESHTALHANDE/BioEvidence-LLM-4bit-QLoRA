@@ -1,0 +1,137 @@
+# 🔬 BioEvidence-LLM: Biomedical Evidence-Grounded Language Model
+
+[![Tests](https://img.shields.io/badge/pytest-16%20passed-brightgreen.svg)](tests/)
+[![Python](https://img.shields.io/badge/python-3.11-blue.svg)](pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Device: RTX 3050](https://img.shields.io/badge/GPU-RTX%203050%20(4GB%20VRAM)-orange.svg)](docs/environment-audit.md)
+
+An open-source, evidence-grounded biomedical NLP language model system. BioEvidence-LLM takes a **Biomedical Question** and **Evidence Context** (e.g., PubMed abstract or clinical trial results) and produces a strictly structured JSON response with decision classification (`YES`/`NO`/`MAYBE`), verbatim cited quotes, explicit study uncertainties, and documented clinical trial limitations.
+
+---
+
+## ⚠️ Mandatory Safety Disclaimer
+
+> **This system is intended for biomedical research and educational use. It is not a substitute for professional medical advice, diagnosis, treatment, or clinical decision-making.**
+
+---
+
+## 🏗️ Architecture & Pipeline Overview
+
+```text
+ ┌────────────────────────────────────────────────────────┐
+ │ Public Biomedical Sources                              │
+ │ PubMedQA (1000) | MedQuAD (27) | PubMed (10) | PMC (1) │
+ └──────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+ ┌────────────────────────────────────────────────────────┐
+ │ Ingestion & Normalization: BiomedicalRecord Schema     │
+ └──────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+ ┌────────────────────────────────────────────────────────┐
+ │ Preprocessing: Cleaning, Deduplication, & Leakage Split│
+ │ (0 Overlap: Train = 880 PMIDs, Eval = 156 PMIDs)       │
+ └──────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+ ┌────────────────────────────────────────────────────────┐
+ │ Instruction Datasets: BioEvidence-SFT & Eval Benchmark │
+ └──────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+ ┌────────────────────────────────────────────────────────┐
+ │ 4-Bit QLoRA Fine-Tuning: Qwen2.5-1.5B (4GB VRAM target)│
+ └──────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼
+ ┌────────────────────────────────────────────────────────┐
+ │ Evaluation Engine, Inference Engine & Gradio Web App   │
+ └────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 Quickstart & Installation
+
+### 1. Environment Setup
+```powershell
+# Create virtual environment with Python 3.11
+uv venv .venv --python 3.11
+
+# Install CUDA-enabled PyTorch (CUDA 12.4)
+uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+
+# Install all project dependencies
+uv pip install -r requirements.txt -r requirements-dev.txt
+```
+
+### 2. Run Automated Test Suite
+```powershell
+.\.venv\Scripts\pytest tests/
+```
+
+### 3. Launch Interactive Gradio Web Demo
+```powershell
+.\.venv\Scripts\python.exe app/app.py
+```
+Open your browser at `http://127.0.0.1:7860`.
+
+---
+
+## 📊 Dataset Ingestion & Preprocessing
+
+To re-run the full data ingestion and leakage-free splitting pipeline:
+
+```powershell
+# Ingest PubMedQA
+.\.venv\Scripts\python.exe -m src.data.pubmedqa_loader
+
+# Ingest MedQuAD
+.\.venv\Scripts\python.exe -m src.data.medquad_loader
+
+# Controlled PubMed Retrieval (NCBI API)
+.\.venv\Scripts\python.exe -m src.data.pubmed_loader --query "clinical trial[pt] AND outcome" --max-records 20
+
+# Execute Cleaning, Deduplication & PMID-Grouping Split
+.\.venv\Scripts\python.exe -m src.preprocessing.pipeline
+
+# Build SFT Instruction Datasets & Golden Benchmark
+.\.venv\Scripts\python.exe -m src.dataset.builder
+```
+
+---
+
+## 🧠 Model Fine-Tuning (4-bit QLoRA)
+
+Fine-tuning is configured in [`configs/training.yaml`](configs/training.yaml) and [`configs/model.yaml`](configs/model.yaml) for **4GB VRAM** consumer GPUs using `paged_adamw_8bit` and gradient checkpointing:
+
+```powershell
+# Run quick verification smoke test (2 steps)
+.\.venv\Scripts\python.exe -m src.training.train --smoke-test
+
+# Run full fine-tuning pass
+.\.venv\Scripts\python.exe -m src.training.train --dataset data/sft/BioEvidence-SFT-full.jsonl
+```
+
+---
+
+## 📑 Repository Structure
+
+- `app/app.py`: Interactive Gradio web application.
+- `configs/`: YAML configurations for model, dataset, training, and evaluation.
+- `data/`:
+  - `raw/`: Immutable raw datasets (PubMedQA, MedQuAD, PubMed XML).
+  - `interim/`: Intermediate normalized records.
+  - `processed/`: Deduplicated and leakage-free train/eval splits.
+  - `sft/`: `BioEvidence-SFT-v0.1.jsonl` (pilot) and `BioEvidence-SFT-full.jsonl`.
+  - `evaluation/`: `BioEvidence-Eval-v0.1.jsonl` (held-out benchmark).
+- `docs/`: Environment audit, task taxonomy, human review rubric, and GGUF guide.
+- `src/`:
+  - `data/`: PubMedQA, MedQuAD, PubMed, and PMC loaders.
+  - `preprocessing/`: Normalization, deduplication, quality filters, and leakage prevention.
+  - `dataset/`: Pydantic schema contracts, prompts, and dataset builders.
+  - `training/`: 4-bit QLoRA training pipeline with MLflow tracking.
+  - `evaluation/`: Benchmark evaluation engine (Macro F1, accuracy, hallucination scoring).
+  - `inference/`: Generation engine with schema repair and safety disclaimers.
+- `tests/`: 16 comprehensive unit tests covering all modules.
