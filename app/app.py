@@ -2,7 +2,15 @@
 
 import json
 import logging
+from pathlib import Path
+import sys
 from typing import Tuple
+
+# Ensure project root is in sys.path when running app.py directly
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 import gradio as gr
 
 from src.inference.generator import MANDATORY_MEDICAL_DISCLAIMER
