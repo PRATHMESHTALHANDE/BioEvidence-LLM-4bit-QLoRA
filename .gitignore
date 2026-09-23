@@ -1,0 +1,62 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local credentials & secrets
+.env
+.env.*
+*.pem
+*.key
+token.txt
+
+# Model weights & Checkpoints (downloaded or local)
+models/base/*
+!models/base/.gitkeep
+models/adapters/*
+!models/adapters/.gitkeep
+models/gguf/*
+!models/gguf/.gitkeep
+*.bin
+*.pt
+*.pth
+*.safetensors
+*.gguf
+
+# Raw large dataset dumps
+data/raw/pubmedqa/*
+!data/raw/pubmedqa/.gitkeep
+data/raw/medquad/*
+!data/raw/medquad/.gitkeep
+data/raw/pubmed/*
+!data/raw/pubmed/.gitkeep
+data/raw/pmc/*
+!data/raw/pmc/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# MLflow tracking artifacts
+mlruns/
+mlartifacts/
+outputs/experiments/*
+!outputs/experiments/.gitkeep
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

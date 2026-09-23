@@ -1,0 +1,32 @@
+# BioEvidence-LLM Dependencies
+# CUDA-enabled PyTorch should be installed with:
+# uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+
+# Core Deep Learning & Hugging Face Stack
+torch>=2.4.0
+transformers>=4.44.0
+datasets>=2.20.0
+accelerate>=0.33.0
+peft>=0.12.0
+trl>=0.9.6
+bitsandbytes>=0.43.0
+
+# Biomedical NLP & Evaluation
+evaluate>=0.4.2
+rouge-score>=0.1.2
+scikit-learn>=1.5.0
+scipy>=1.13.0
+
+# Data Validation & Formats
+pydantic>=2.8.0
+pyarrow>=17.0.0
+pandas>=2.2.0
+numpy>=1.26.0
+
+# Experiment Tracking & Web App
+mlflow>=2.15.0
+gradio>=4.40.0
+pyyaml>=6.0.1
+requests>=2.32.0
+tqdm>=4.66.0
+python-dotenv>=1.0.1

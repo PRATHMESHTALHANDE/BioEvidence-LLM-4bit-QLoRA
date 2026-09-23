@@ -1,0 +1,39 @@
+# Dataset Sources, Processing, and Splits Configuration
+datasets:
+  pubmedqa:
+    enabled: true
+    source_url: "https://raw.githubusercontent.com/pubmedqa/pubmedqa/master/data/ori_pqal.json"
+    raw_dir: "data/raw/pubmedqa"
+    task_weight: 0.35
+
+  medquad:
+    enabled: true
+    raw_dir: "data/raw/medquad"
+    task_weight: 0.20
+
+  pubmed_api:
+    enabled: true
+    raw_dir: "data/raw/pubmed"
+    task_weight: 0.25
+
+  pmc_oa:
+    enabled: true
+    raw_dir: "data/raw/pmc"
+    task_weight: 0.20
+
+splits:
+  train_ratio: 0.85
+  val_ratio: 0.15
+  random_seed: 42
+  group_by: "pmid" # Enforce strict article-level grouping to prevent leakage
+
+tokenization:
+  max_prompt_length: 1536
+  max_response_length: 512
+  padding_side: "right"
+  truncation: true
+
+paths:
+  sft_pilot: "data/sft/BioEvidence-SFT-v0.1.jsonl"
+  sft_full: "data/sft/BioEvidence-SFT-full.jsonl"
+  eval_golden: "data/evaluation/BioEvidence-Eval-v0.1.jsonl"

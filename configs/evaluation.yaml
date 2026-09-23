@@ -1,0 +1,22 @@
+# Evaluation Engine & Benchmarking Configuration
+evaluation:
+  benchmark_file: "data/evaluation/BioEvidence-Eval-v0.1.jsonl"
+  output_dir: "outputs/evaluation"
+  batch_size: 1
+  generation:
+    max_new_tokens: 512
+    temperature: 0.0 # Greedy decoding for deterministic evaluation
+    do_sample: false
+    top_p: 1.0
+
+metrics:
+  - "decision_accuracy"
+  - "decision_macro_f1"
+  - "json_validity_rate"
+  - "hallucination_rate"
+  - "numerical_consistency"
+  - "rouge_score"
+
+reporting:
+  markdown_report_path: "outputs/evaluation/comparison/evaluation_report.md"
+  error_analysis_path: "outputs/error_analysis/error_analysis_report.md"

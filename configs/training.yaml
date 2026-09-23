@@ -1,0 +1,32 @@
+# Supervised Fine-Tuning (SFT) Hyperparameters
+training:
+  output_dir: "outputs/experiments/bioevidence-qwen2.5-1.5b-qlora"
+  adapter_dir: "models/adapters/bioevidence-lora-best"
+  num_train_epochs: 3
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 8 # Effective batch size = 8
+  learning_rate: 0.0002 # 2e-4 standard for LoRA
+  lr_scheduler_type: "cosine"
+  warmup_ratio: 0.05
+  weight_decay: 0.01
+  max_grad_norm: 0.3
+  optim: "paged_adamw_8bit" # Conserves VRAM on consumer GPUs
+  fp16: false
+  bf16: true # Fallback to fp16 if GPU lacks bf16 support
+  gradient_checkpointing: true
+  logging_steps: 10
+  eval_strategy: "steps"
+  eval_steps: 50
+  save_strategy: "steps"
+  save_steps: 50
+  save_total_limit: 3
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+  greater_is_better: false
+  seed: 42
+
+tracking:
+  use_mlflow: true
+  experiment_name: "BioEvidence-LLM-SFT"
+  tracking_uri: "sqlite:///outputs/experiments/mlflow.db"
