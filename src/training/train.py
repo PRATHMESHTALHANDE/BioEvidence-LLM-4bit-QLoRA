@@ -120,7 +120,9 @@ def train_sft(
         max_steps = -1
         epochs = train_cfg["num_train_epochs"]
 
-    training_args = TrainingArguments(
+    from trl import SFTConfig
+
+    sft_config = SFTConfig(
         output_dir=str(output_dir),
         per_device_train_batch_size=train_cfg["per_device_train_batch_size"],
         gradient_accumulation_steps=train_cfg["gradient_accumulation_steps"],
@@ -128,25 +130,22 @@ def train_sft(
         num_train_epochs=epochs,
         max_steps=max_steps,
         lr_scheduler_type="cosine",
-        warmup_ratio=train_cfg["warmup_ratio"],
+        warmup_steps=train_cfg.get("warmup_steps", 2),
         logging_steps=1 if smoke_test else train_cfg["logging_steps"],
-        fp16=True,
+        fp16=False,
         bf16=False,
         optim="paged_adamw_8bit",
         report_to=["mlflow"] if use_mlflow else [],
         save_strategy="no" if smoke_test else "steps",
         save_steps=train_cfg.get("save_steps", 50),
-        logging_dir="outputs/experiments/logs",
+        max_length=model_cfg.get("max_seq_length", 1024),
     )
 
     trainer = SFTTrainer(
         model=model,
         train_dataset=dataset,
-        peft_config=peft_config,
-        dataset_text_field="messages",
-        max_seq_length=model_cfg.get("max_seq_length", 1024),
-        tokenizer=tokenizer,
-        args=training_args,
+        processing_class=tokenizer,
+        args=sft_config,
     )
 
     logger.info("Starting SFT training pass...")
