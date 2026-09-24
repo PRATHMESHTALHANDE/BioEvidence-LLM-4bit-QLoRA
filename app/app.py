@@ -243,7 +243,7 @@ def create_app() -> gr.Blocks:
     .disclaimer { border-left: 4px solid #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 10px 14px; }
     """
 
-    with gr.Blocks(title="BioEvidence-LLM Studio", theme=gr.themes.Soft(), css=custom_css) as demo:
+    with gr.Blocks(title="BioEvidence-LLM Studio") as demo:
         gr.Markdown(
             f"""# 🔬 BioEvidence-LLM Control Center & Clinical Studio
 > Fine-Tuned Biomedical Evidence-Grounded Synthesis System (4-bit QLoRA on Qwen2.5-1.5B)  
@@ -399,4 +399,13 @@ Directly deploy your fine-tuned LoRA adapter and curated datasets to your profil
 
 if __name__ == "__main__":
     app = create_app()
-    app.launch(server_name="127.0.0.1", server_port=7860, share=False)
+    app.launch(
+        server_name="127.0.0.1",
+        server_port=7860,
+        share=False,
+        theme=gr.themes.Soft(),
+        css="""
+        .banner { padding: 12px 18px; border-radius: 8px; margin-bottom: 12px; }
+        .disclaimer { border-left: 4px solid #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 10px 14px; }
+        """,
+    )
