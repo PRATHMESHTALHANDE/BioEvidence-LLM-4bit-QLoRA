@@ -50,10 +50,23 @@ def publish_model(
     if not adapter_path.exists():
         raise FileNotFoundError(f"Adapter folder not found at: {adapter_path.resolve()}")
 
-    logger.info("Verifying/creating Hugging Face model repository: %s", repo_id)
-    create_repo(repo_id=repo_id, token=hf_token, private=private, exist_ok=True)
+    # Ensure Seaborn visualization plots are included in published adapter repository
+    plots_src = Path("outputs/evaluation/plots")
+    plots_dest = adapter_path / "plots"
+    plots_dest.mkdir(parents=True, exist_ok=True)
+    if plots_src.exists():
+        import shutil
+        for plot_img in plots_src.glob("*.png"):
+            shutil.copy(plot_img, plots_dest / plot_img.name)
+        logger.info("Packaged %d Seaborn visualization plots into model repository.", len(list(plots_dest.glob("*.png"))))
 
-    logger.info("Uploading adapter weights and artifacts from %s...", adapter_path)
+    # Ensure model card README.md is inside adapter folder
+    model_card = Path("models/adapters/README.md")
+    if model_card.exists() and not (adapter_path / "README.md").exists():
+        import shutil
+        shutil.copy(model_card, adapter_path / "README.md")
+
+    logger.info("Uploading adapter weights, visualizations, and model card from %s...", adapter_path)
     api.upload_folder(
         folder_path=str(adapter_path),
         repo_id=repo_id,
