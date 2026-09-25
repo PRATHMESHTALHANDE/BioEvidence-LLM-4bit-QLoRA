@@ -143,14 +143,18 @@ class BeautifulTerminalAndMarkdownCallback(TrainerCallback):
 def train_sft(
     training_config_path: str = "configs/training.yaml",
     model_config_path: str = "configs/model.yaml",
-    dataset_file: str = "data/sft/BioEvidence-SFT-full.jsonl",
+    dataset_file: str | None = None,
     smoke_test: bool = False,
     override_model_name: str | None = None,
+    epochs: int | None = None,
 ):
     """Run supervised fine-tuning with 4-bit QLoRA and MLflow tracking."""
     train_cfg = get_training_config()["training"]
     model_cfg = get_model_config()["model"]
     lora_cfg = get_model_config()["lora"]
+
+    if dataset_file is None:
+        dataset_file = "data/sft/BioEvidence-SFT-v0.1.jsonl" if smoke_test else "data/sft/BioEvidence-SFT-full.jsonl"
 
     model_name = override_model_name or model_cfg["base_model_name_or_path"]
     output_dir = Path(train_cfg["output_dir"])
@@ -229,7 +233,7 @@ def train_sft(
         epochs = 1
     else:
         max_steps = -1
-        epochs = train_cfg["num_train_epochs"]
+        epochs = epochs or train_cfg.get("num_train_epochs", 3)
 
     run_metadata = {
         "device_name": gpu_name,
@@ -295,12 +299,14 @@ def train_sft(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="BioEvidence-LLM Fine-Tuning")
     parser.add_argument("--smoke-test", action="store_true", help="Run quick 2-step verification smoke test")
+    parser.add_argument("--epochs", type=int, default=None, help="Number of training epochs")
     parser.add_argument("--model-name", type=str, default=None, help="Base model override")
-    parser.add_argument("--dataset", type=str, default="data/sft/BioEvidence-SFT-v0.1.jsonl", help="Dataset file")
+    parser.add_argument("--dataset", type=str, default=None, help="Dataset file")
     args = parser.parse_args()
 
     train_sft(
         smoke_test=args.smoke_test,
         override_model_name=args.model_name,
         dataset_file=args.dataset,
+        epochs=args.epochs,
     )
