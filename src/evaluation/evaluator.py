@@ -4,13 +4,13 @@ Computes Decision Accuracy, Macro F1, JSON Schema Validity,
 Verbatim Evidence Consistency, and Hallucination Rates on the held-out benchmark.
 """
 
-from collections import Counter
 import json
 import logging
-from pathlib import Path
 import re
 import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional
+
 from sklearn.metrics import accuracy_score, f1_score
 
 if sys.platform == "win32":
@@ -77,11 +77,9 @@ class BenchmarkEvaluator:
             context = item.get("context", "")
 
             # Check JSON validity
-            is_valid_json = False
             try:
                 parsed = json.loads(raw_gen)
                 StructuredModelOutput.model_validate(parsed)
-                is_valid_json = True
                 valid_json_count += 1
             except Exception:
                 pass
@@ -172,39 +170,56 @@ class BenchmarkEvaluator:
             if finetuned_metrics:
                 ft_val = finetuned_metrics.get(k, 0.0)
                 delta = ft_val - base_val
-                delta_str = f"+{delta*100:.1f}%" if k in ("decision_accuracy", "json_validity_rate", "average_evidence_grounding") else f"+{delta:.4f}"
+                delta_str = (
+                    f"+{delta * 100:.1f}%"
+                    if k
+                    in ("decision_accuracy", "json_validity_rate", "average_evidence_grounding")
+                    else f"+{delta:.4f}"
+                )
                 if k == "hallucination_rate":
-                    delta_str = f"-{(base_val - ft_val)*100:.1f}%" if base_val > ft_val else f"+{delta*100:.1f}%"
-                base_str = f"{base_val*100:.1f}%" if k != "decision_macro_f1" else f"{base_val:.4f}"
-                ft_str = f"{ft_val*100:.1f}%" if k != "decision_macro_f1" else f"{ft_val:.4f}"
-                lines.append(f"| **{label}** | {base_str} | **{ft_str}** | **`{delta_str}`** | {why} |")
+                    delta_str = (
+                        f"-{(base_val - ft_val) * 100:.1f}%"
+                        if base_val > ft_val
+                        else f"+{delta * 100:.1f}%"
+                    )
+                base_str = (
+                    f"{base_val * 100:.1f}%" if k != "decision_macro_f1" else f"{base_val:.4f}"
+                )
+                ft_str = f"{ft_val * 100:.1f}%" if k != "decision_macro_f1" else f"{ft_val:.4f}"
+                lines.append(
+                    f"| **{label}** | {base_str} | **{ft_str}** | **`{delta_str}`** | {why} |"
+                )
             else:
-                base_str = f"{base_val*100:.1f}%" if k != "decision_macro_f1" else f"{base_val:.4f}"
+                base_str = (
+                    f"{base_val * 100:.1f}%" if k != "decision_macro_f1" else f"{base_val:.4f}"
+                )
                 lines.append(f"| **{label}** | {base_str} | *Pending Fine-Tuning* | — | {why} |")
 
-        lines.extend([
-            "",
-            "## 2. Qualitative Output Comparison on Real Clinical Sample",
-            "",
-            "### Clinical Question",
-            "> *Does statin therapy reduce 30-day cardiovascular mortality in patients with type 2 diabetes?*",
-            "",
-            "### Source Abstract",
-            "> *\"In a multi-center randomized controlled trial of 1,200 diabetic adults, subjects were assigned to daily atorvastatin 20mg or matching placebo. At 30 days, cardiovascular mortality was 2.8% in the atorvastatin arm versus 5.1% in the placebo arm (hazard ratio 0.54, 95% CI 0.38-0.78, p=0.002). Statin therapy significantly reduces short-term cardiovascular mortality in diabetic adults.\"*",
-            "",
-            "| Feature | Base Model (Pre-SFT: Qwen2.5-1.5B Zero-Shot) | Fine-Tuned Model (Post-SFT: BioEvidence-LLM) |",
-            "| :--- | :--- | :--- |",
-            "| **Response Format** | Raw conversational paragraphs with conversational filler (\"Sure, I can help with that!\"). | Strict 5-field JSON adhering to Pydantic schema without preamble. |",
-            "| **Decision Classification** | Vague opinion: *\"It seems likely that statins are beneficial...\"* (No explicit label). | Deterministic: `\"decision\": \"yes\"` |",
-            "| **Verbatim Evidence Citations** | Paraphrased or hallucinated mechanisms. No exact quoted text. | Exact verbatim substring: `\"At 30 days, cardiovascular mortality was 2.8% in the atorvastatin arm versus 5.1% in the placebo arm (hazard ratio 0.54, 95% CI 0.38-0.78, p=0.002).\"` |",
-            "| **Preserved Uncertainty** | Completely omitted; claims certainty without noting trial duration. | Explicitly captured: `\"The trial monitored outcomes up to 30 days; long-term follow-up beyond 1 year was not addressed in this cohort.\"` |",
-            "| **Documented Limitations** | Missing. | Systematically extracted: `[\"Limited to single 30-day observation window\", \"Multi-center but adult-only diabetic population\"]` |",
-            "",
-            "## 3. Key Observations & SFT Impact",
-            "- **Elimination of Schema Breakage:** Zero-shot models fail to produce structured JSON over 55% of the time. Fine-tuning aligns token transitions strictly to JSON syntax.",
-            "- **Zero Fact Fabrication:** SFT weights prioritize extractive attention over generative extrapolation, forcing the model to cite numbers rather than guess.",
-            "- **Preservation of Clinical Nuance:** Where source studies are inconclusive ($p > 0.05$ or small $n$), the fine-tuned model consistently classifies as `maybe` rather than guessing.",
-        ])
+        lines.extend(
+            [
+                "",
+                "## 2. Qualitative Output Comparison on Real Clinical Sample",
+                "",
+                "### Clinical Question",
+                "> *Does statin therapy reduce 30-day cardiovascular mortality in patients with type 2 diabetes?*",
+                "",
+                "### Source Abstract",
+                '> *"In a multi-center randomized controlled trial of 1,200 diabetic adults, subjects were assigned to daily atorvastatin 20mg or matching placebo. At 30 days, cardiovascular mortality was 2.8% in the atorvastatin arm versus 5.1% in the placebo arm (hazard ratio 0.54, 95% CI 0.38-0.78, p=0.002). Statin therapy significantly reduces short-term cardiovascular mortality in diabetic adults."*',
+                "",
+                "| Feature | Base Model (Pre-SFT: Qwen2.5-1.5B Zero-Shot) | Fine-Tuned Model (Post-SFT: BioEvidence-LLM) |",
+                "| :--- | :--- | :--- |",
+                '| **Response Format** | Raw conversational paragraphs with conversational filler ("Sure, I can help with that!"). | Strict 5-field JSON adhering to Pydantic schema without preamble. |',
+                '| **Decision Classification** | Vague opinion: *"It seems likely that statins are beneficial..."* (No explicit label). | Deterministic: `"decision": "yes"` |',
+                '| **Verbatim Evidence Citations** | Paraphrased or hallucinated mechanisms. No exact quoted text. | Exact verbatim substring: `"At 30 days, cardiovascular mortality was 2.8% in the atorvastatin arm versus 5.1% in the placebo arm (hazard ratio 0.54, 95% CI 0.38-0.78, p=0.002)."` |',
+                '| **Preserved Uncertainty** | Completely omitted; claims certainty without noting trial duration. | Explicitly captured: `"The trial monitored outcomes up to 30 days; long-term follow-up beyond 1 year was not addressed in this cohort."` |',
+                '| **Documented Limitations** | Missing. | Systematically extracted: `["Limited to single 30-day observation window", "Multi-center but adult-only diabetic population"]` |',
+                "",
+                "## 3. Key Observations & SFT Impact",
+                "- **Elimination of Schema Breakage:** Zero-shot models fail to produce structured JSON over 55% of the time. Fine-tuning aligns token transitions strictly to JSON syntax.",
+                "- **Zero Fact Fabrication:** SFT weights prioritize extractive attention over generative extrapolation, forcing the model to cite numbers rather than guess.",
+                "- **Preservation of Clinical Nuance:** Where source studies are inconclusive ($p > 0.05$ or small $n$), the fine-tuned model consistently classifies as `maybe` rather than guessing.",
+            ]
+        )
 
         out.write_text("\n".join(lines), encoding="utf-8")
         logger.info("Saved comparative markdown report to %s", out)
@@ -222,6 +237,7 @@ def run_benchmark_evaluation(
     """Execute live model inference and scoring on the held-out evaluation dataset."""
     import gc
     import time
+
     from src.inference.generator import BioEvidenceGenerator
     from src.utils.visualizer import generate_benchmark_comparison
 
@@ -236,7 +252,9 @@ def run_benchmark_evaluation(
     print(f"  Test Records:    {len(records)} held-out medical articles")
     print(f"  Compute Device:  {device.upper()}")
     print(f"  Base Model:      {base_model_name}")
-    print(f"  Adapter Path:    {adapter_path if adapter_path and Path(adapter_path).exists() else 'None'}")
+    print(
+        f"  Adapter Path:    {adapter_path if adapter_path and Path(adapter_path).exists() else 'None'}"
+    )
     print(f"  Evaluation Mode: {eval_mode.upper()}")
     print("-" * 80)
 
@@ -254,7 +272,7 @@ def run_benchmark_evaluation(
 
     # 1. EVALUATE FINE-TUNED MODEL FIRST (Star of the Project)
     if eval_mode in ("both", "finetuned") and adapter_path and Path(adapter_path).exists():
-        print(f"\n>> [PHASE 1] EVALUATING FINE-TUNED MODEL (BioEvidence-LLM with LoRA)...")
+        print("\n>> [PHASE 1] EVALUATING FINE-TUNED MODEL (BioEvidence-LLM with LoRA)...")
         print(f"Loading LoRA weights from: {adapter_path} on {device.upper()}...")
         ft_gen = BioEvidenceGenerator(
             base_model_name=base_model_name,
@@ -289,30 +307,46 @@ def run_benchmark_evaluation(
 
             is_match = "[MATCH]" if decision_str == gt_decision.upper() else "[MISMATCH]"
 
-            print(f"--------------------------------------------------------------------------------")
+            print(
+                "--------------------------------------------------------------------------------"
+            )
             print(f">> [Live Question {i}/{len(records)}] PMID: {pmid} | Task: {task}")
             print(f"  Q: {q[:120]}{'...' if len(q) > 120 else ''}")
-            print(f"  * Fine-Tuned Model (BioEvidence-LLM) Output:")
-            print(f"     - Decision:           {decision_str} (Ground Truth: {gt_decision.upper()}) {is_match}")
+            print("  * Fine-Tuned Model (BioEvidence-LLM) Output:")
+            print(
+                f"     - Decision:           {decision_str} (Ground Truth: {gt_decision.upper()}) {is_match}"
+            )
             print(f"     - Evidence Synthesis: {answer[:130]}{'...' if len(answer) > 130 else ''}")
-            print(f"     - Cited Quote:        \"{evidence_quote[:110]}{'...' if len(evidence_quote) > 110 else ''}\"")
-            print(f"     - Uncertainty:        {uncertainty[:90]}{'...' if len(uncertainty) > 90 else ''}")
-            print(f"     - Limitations:        {', '.join(limitations[:2]) if limitations else 'None'}")
+            print(
+                f'     - Cited Quote:        "{evidence_quote[:110]}{"..." if len(evidence_quote) > 110 else ""}"'
+            )
+            print(
+                f"     - Uncertainty:        {uncertainty[:90]}{'...' if len(uncertainty) > 90 else ''}"
+            )
+            print(
+                f"     - Limitations:        {', '.join(limitations[:2]) if limitations else 'None'}"
+            )
             print(f"     - 5-Field JSON Valid: {bool(struct)} | Generation Latency: {gen_sec:.2f}s")
 
-            ft_predictions.append({
-                "context": ctx,
-                "ground_truth_decision": gt_decision,
-                "generated_text": out.get("raw_output", ""),
-            })
+            ft_predictions.append(
+                {
+                    "context": ctx,
+                    "ground_truth_decision": gt_decision,
+                    "generated_text": out.get("raw_output", ""),
+                }
+            )
 
         ft_metrics = evaluator.evaluate_predictions(ft_predictions, model_name="BioEvidence-LLM")
         print("\n" + "=" * 50)
         print("  [SUCCESS] FINE-TUNED MODEL SCORING COMPLETE:")
         print(f"     - Decision Accuracy:   {ft_metrics.get('accuracy', 0.0) * 100:.1f}%")
         print(f"     - Macro F1 Score:       {ft_metrics.get('macro_f1', 0.0):.4f}")
-        print(f"     - JSON Validity Rate:   {ft_metrics.get('json_validity_rate', 0.0) * 100:.1f}%")
-        print(f"     - Hallucination Rate:   {ft_metrics.get('hallucination_rate', 0.0) * 100:.1f}%")
+        print(
+            f"     - JSON Validity Rate:   {ft_metrics.get('json_validity_rate', 0.0) * 100:.1f}%"
+        )
+        print(
+            f"     - Hallucination Rate:   {ft_metrics.get('hallucination_rate', 0.0) * 100:.1f}%"
+        )
         print("=" * 50 + "\n")
 
         # Cleanup memory before running base model
@@ -321,7 +355,7 @@ def run_benchmark_evaluation(
 
     # 2. EVALUATE BASE MODEL (ZERO-SHOT) IF REQUESTED
     if eval_mode in ("both", "base"):
-        print(f"\n>> [PHASE 2] EVALUATING BASE MODEL (Zero-Shot Baseline)...")
+        print("\n>> [PHASE 2] EVALUATING BASE MODEL (Zero-Shot Baseline)...")
         print(f"Loading Base Model: {base_model_name} on {device.upper()}...")
         base_gen = BioEvidenceGenerator(
             base_model_name=base_model_name,
@@ -347,14 +381,20 @@ def run_benchmark_evaluation(
             if hasattr(decision, "value"):
                 decision = decision.value
 
-            print(f"  [Base Question {i}/{len(records)}] PMID: {pmid} | Decision: {str(decision).upper()} | Latency: {gen_sec:.2f}s")
-            base_predictions.append({
-                "context": ctx,
-                "ground_truth_decision": gt_decision,
-                "generated_text": out.get("raw_output", ""),
-            })
+            print(
+                f"  [Base Question {i}/{len(records)}] PMID: {pmid} | Decision: {str(decision).upper()} | Latency: {gen_sec:.2f}s"
+            )
+            base_predictions.append(
+                {
+                    "context": ctx,
+                    "ground_truth_decision": gt_decision,
+                    "generated_text": out.get("raw_output", ""),
+                }
+            )
 
-        base_metrics = evaluator.evaluate_predictions(base_predictions, model_name="Base-Model-ZeroShot")
+        base_metrics = evaluator.evaluate_predictions(
+            base_predictions, model_name="Base-Model-ZeroShot"
+        )
         print(f"  Base Model Accuracy: {base_metrics.get('accuracy', 0.0) * 100:.1f}%\n")
         del base_gen
         gc.collect()
@@ -407,11 +447,23 @@ def run_benchmark_evaluation(
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="BioEvidence-LLM Benchmark Evaluator")
     parser.add_argument("--adapter-path", type=str, default="models/adapters/bioevidence-lora-best")
     parser.add_argument("--device", type=str, default="cpu", choices=["cpu", "cuda"])
-    parser.add_argument("--samples", type=int, default=None, help="Number of test samples to evaluate (default: all 156)")
-    parser.add_argument("--mode", type=str, default="both", choices=["both", "finetuned", "base"], help="Evaluation scope")
+    parser.add_argument(
+        "--samples",
+        type=int,
+        default=None,
+        help="Number of test samples to evaluate (default: all 156)",
+    )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default="both",
+        choices=["both", "finetuned", "base"],
+        help="Evaluation scope",
+    )
     args = parser.parse_args()
 
     run_benchmark_evaluation(

@@ -1,6 +1,5 @@
 """Automated Human Review Rubric Verification for Pilot Dataset."""
 
-from collections import Counter
 import json
 import logging
 from pathlib import Path
@@ -12,7 +11,9 @@ from src.dataset.schema import BiomedicalRecord, StructuredModelOutput
 logger = logging.getLogger(__name__)
 
 
-def audit_pilot_dataset(pilot_path: str | Path = "data/sft/BioEvidence-SFT-v0.1.jsonl") -> Dict[str, Any]:
+def audit_pilot_dataset(
+    pilot_path: str | Path = "data/sft/BioEvidence-SFT-v0.1.jsonl",
+) -> Dict[str, Any]:
     """Audit pilot records against the 6 criteria in docs/human-review-rubric.md."""
     path = Path(pilot_path)
     total = 0
@@ -61,17 +62,19 @@ def audit_pilot_dataset(pilot_path: str | Path = "data/sft/BioEvidence-SFT-v0.1.
                 status = "NEEDS_REVIEW"
                 needs_review += 1
 
-            results.append({
-                "sample_id": record.id,
-                "task": record.task.value,
-                "status": status,
-                "checks": {
-                    "c1_c3_factual": True,
-                    "c2_verbatim_evidence": verbatim_ok,
-                    "c4_uncertainty": uncertainty_ok,
-                    "c6_valid_json": json_valid,
-                },
-            })
+            results.append(
+                {
+                    "sample_id": record.id,
+                    "task": record.task.value,
+                    "status": status,
+                    "checks": {
+                        "c1_c3_factual": True,
+                        "c2_verbatim_evidence": verbatim_ok,
+                        "c4_uncertainty": uncertainty_ok,
+                        "c6_valid_json": json_valid,
+                    },
+                }
+            )
 
     report = {
         "dataset": str(path),

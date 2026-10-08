@@ -6,11 +6,10 @@ and automatically exporting structured Markdown training reports.
 """
 
 import argparse
-from datetime import datetime, timezone
-import json
 import logging
-from pathlib import Path
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List
 
 import mlflow
@@ -38,7 +37,9 @@ logger = logging.getLogger(__name__)
 class BeautifulTerminalAndMarkdownCallback(TrainerCallback):
     """Logs clean step tables to terminal and exports docs/TRAINING_RUN_REPORT.md."""
 
-    def __init__(self, run_metadata: Dict[str, Any], report_path: str = "docs/TRAINING_RUN_REPORT.md"):
+    def __init__(
+        self, run_metadata: Dict[str, Any], report_path: str = "docs/TRAINING_RUN_REPORT.md"
+    ):
         self.meta = run_metadata
         self.report_path = Path(report_path)
         self.step_history: List[Dict[str, Any]] = []
@@ -52,13 +53,21 @@ class BeautifulTerminalAndMarkdownCallback(TrainerCallback):
         print(f"  Memory Info:     {self.meta.get('mem_info')}")
         print(f"  Base Model:      {self.meta.get('base_model')}")
         print(f"  Quantization:    {self.meta.get('quant_mode')}")
-        print(f"  PEFT Adapter:    LoRA (r={self.meta.get('lora_r')}, alpha={self.meta.get('lora_alpha')})")
-        print(f"  Trainable Params:{self.meta.get('trainable_params')} ({self.meta.get('trainable_percent')}%)")
+        print(
+            f"  PEFT Adapter:    LoRA (r={self.meta.get('lora_r')}, alpha={self.meta.get('lora_alpha')})"
+        )
+        print(
+            f"  Trainable Params:{self.meta.get('trainable_params')} ({self.meta.get('trainable_percent')}%)"
+        )
         print(f"  Optimizer:       {self.meta.get('optimizer_name')}")
         print(f"  Dataset:         {self.meta.get('dataset_file')}")
-        print(f"  Execution Mode:  {'Smoke Test (2 steps)' if self.meta.get('smoke_test') else 'Full Training Run'}")
+        print(
+            f"  Execution Mode:  {'Smoke Test (2 steps)' if self.meta.get('smoke_test') else 'Full Training Run'}"
+        )
         print("-" * 80)
-        print(f"{'Step':<8} | {'Loss':<10} | {'Learning Rate':<15} | {'Grad Norm':<10} | {'Epoch':<8}")
+        print(
+            f"{'Step':<8} | {'Loss':<10} | {'Learning Rate':<15} | {'Grad Norm':<10} | {'Epoch':<8}"
+        )
         print("-" * 80)
 
     def on_step_begin(self, args, state, control, **kwargs):
@@ -99,7 +108,7 @@ class BeautifulTerminalAndMarkdownCallback(TrainerCallback):
             "# BioEvidence-LLM: Fine-Tuning Execution Report",
             "",
             f"> **Execution Date:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}  ",
-            f"> **Status:** COMPLETED  ",
+            "> **Status:** COMPLETED  ",
             f"> **Target Framework:** {self.meta.get('target_framework')}  ",
             "",
             "## 1. Hardware & Model Architecture",
@@ -116,7 +125,7 @@ class BeautifulTerminalAndMarkdownCallback(TrainerCallback):
             f"| **Learning Rate** | {self.meta.get('learning_rate')} (Cosine Schedule) |",
             f"| **Effective Batch Size** | {self.meta.get('batch_size')} $\\times$ {self.meta.get('gradient_accumulation')} = {self.meta.get('batch_size') * self.meta.get('gradient_accumulation')} |",
             f"| **Optimizer** | `{self.meta.get('optimizer_name')}` |",
-            f"| **Gradient Checkpointing** | Enabled |",
+            "| **Gradient Checkpointing** | Enabled |",
             "",
             "## 2. Step-by-Step Training Metrics",
             "",
@@ -129,20 +138,22 @@ class BeautifulTerminalAndMarkdownCallback(TrainerCallback):
                 f"| `{s['step']}` | **{s['loss']}** | `{s['learning_rate']}` | `{s['grad_norm']}` | `{s['epoch']}` |"
             )
 
-        report_lines.extend([
-            "",
-            "## 3. Output Checkpoints & Artifact Locations",
-            "",
-            f"- **Saved LoRA Adapter:** [`{self.meta.get('adapter_dir')}`](file:///{Path(self.meta.get('adapter_dir')).resolve().as_posix()})",
-            f"- **Weights File:** `adapter_model.safetensors` (~36.9 MB)",
-            "- **MLflow Experiment DB:** `outputs/experiments/mlflow.db`",
-            "- **Gradio Web Demo:** [`app/app.py`](file:///c:/Users/roari/Downloads/AI%20Projects/Fine%20Tunning%20LLM/app/app.py)",
-            "",
-            "## 4. Next Steps",
-            "1. Launch the **MLflow Dashboard** to view interactive step graphs: `.\\.venv\\Scripts\\mlflow.exe ui --backend-store-uri sqlite:///outputs/experiments/mlflow.db`",
-            "2. Launch the **Gradio Clinical Web Demo**: `.\\.venv\\Scripts\\python.exe app/app.py`",
-            "3. Inspect the **Hugging Face Model Card**: [`models/adapters/README.md`](file:///c:/Users/roari/Downloads/AI%20Projects/Fine%20Tunning%20LLM/models/adapters/README.md)",
-        ])
+        report_lines.extend(
+            [
+                "",
+                "## 3. Output Checkpoints & Artifact Locations",
+                "",
+                f"- **Saved LoRA Adapter:** [`{self.meta.get('adapter_dir')}`](file:///{Path(self.meta.get('adapter_dir')).resolve().as_posix()})",
+                "- **Weights File:** `adapter_model.safetensors` (~36.9 MB)",
+                "- **MLflow Experiment DB:** `outputs/experiments/mlflow.db`",
+                "- **Gradio Web Demo:** [`app/app.py`](file:///c:/Users/roari/Downloads/AI%20Projects/Fine%20Tunning%20LLM/app/app.py)",
+                "",
+                "## 4. Next Steps",
+                "1. Launch the **MLflow Dashboard** to view interactive step graphs: `.\\.venv\\Scripts\\mlflow.exe ui --backend-store-uri sqlite:///outputs/experiments/mlflow.db`",
+                "2. Launch the **Gradio Clinical Web Demo**: `.\\.venv\\Scripts\\python.exe app/app.py`",
+                "3. Inspect the **Hugging Face Model Card**: [`models/adapters/README.md`](file:///c:/Users/roari/Downloads/AI%20Projects/Fine%20Tunning%20LLM/models/adapters/README.md)",
+            ]
+        )
 
         self.report_path.write_text("\n".join(report_lines), encoding="utf-8")
         print(f"  Report exported to: {self.report_path}")
@@ -166,7 +177,11 @@ def train_sft(
     lora_cfg = get_model_config()["lora"]
 
     if dataset_file is None:
-        dataset_file = "data/sft/BioEvidence-SFT-v0.1.jsonl" if smoke_test else "data/sft/BioEvidence-SFT-full.jsonl"
+        dataset_file = (
+            "data/sft/BioEvidence-SFT-v0.1.jsonl"
+            if smoke_test
+            else "data/sft/BioEvidence-SFT-full.jsonl"
+        )
 
     model_name = override_model_name or model_cfg["base_model_name_or_path"]
     output_dir = Path(train_cfg["output_dir"])
@@ -199,17 +214,21 @@ def train_sft(
     try:
         mlflow.set_tracking_uri("sqlite:///outputs/experiments/mlflow.db")
         mlflow.set_experiment("BioEvidence-LLM-SFT")
-        mlflow.start_run(run_name=f"{'cpu-lora' if is_cpu else 'gpu-qlora'}-{model_name.replace('/', '_')}")
-        mlflow.log_params({
-            "base_model": model_name,
-            "device": "cpu" if is_cpu else "cuda",
-            "lora_r": lora_cfg["r"],
-            "lora_alpha": lora_cfg["lora_alpha"],
-            "learning_rate": train_cfg["learning_rate"],
-            "batch_size": train_cfg["per_device_train_batch_size"],
-            "gradient_accumulation": train_cfg["gradient_accumulation_steps"],
-            "smoke_test": smoke_test,
-        })
+        mlflow.start_run(
+            run_name=f"{'cpu-lora' if is_cpu else 'gpu-qlora'}-{model_name.replace('/', '_')}"
+        )
+        mlflow.log_params(
+            {
+                "base_model": model_name,
+                "device": "cpu" if is_cpu else "cuda",
+                "lora_r": lora_cfg["r"],
+                "lora_alpha": lora_cfg["lora_alpha"],
+                "learning_rate": train_cfg["learning_rate"],
+                "batch_size": train_cfg["per_device_train_batch_size"],
+                "gradient_accumulation": train_cfg["gradient_accumulation_steps"],
+                "smoke_test": smoke_test,
+            }
+        )
     except Exception as e:
         logger.warning("MLflow notice: %s", e)
         use_mlflow = False
@@ -325,7 +344,11 @@ def train_sft(
         max_length=max_seq_len,
     )
 
-    report_file = "docs/SMOKE_TEST_REPORT.md" if (smoke_test or (max_steps and max_steps <= 10)) else "docs/TRAINING_RUN_REPORT.md"
+    report_file = (
+        "docs/SMOKE_TEST_REPORT.md"
+        if (smoke_test or (max_steps and max_steps <= 10))
+        else "docs/TRAINING_RUN_REPORT.md"
+    )
     markdown_callback = BeautifulTerminalAndMarkdownCallback(run_metadata, report_path=report_file)
 
     trainer = SFTTrainer(
@@ -354,9 +377,13 @@ def train_sft(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="BioEvidence-LLM Fine-Tuning")
-    parser.add_argument("--smoke-test", action="store_true", help="Run quick 2-step verification smoke test")
+    parser.add_argument(
+        "--smoke-test", action="store_true", help="Run quick 2-step verification smoke test"
+    )
     parser.add_argument("--epochs", type=int, default=None, help="Number of training epochs")
-    parser.add_argument("--max-steps", type=int, default=None, help="Maximum number of training steps")
+    parser.add_argument(
+        "--max-steps", type=int, default=None, help="Maximum number of training steps"
+    )
     parser.add_argument(
         "--device",
         type=str,

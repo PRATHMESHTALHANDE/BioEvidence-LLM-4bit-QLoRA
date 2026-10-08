@@ -2,8 +2,8 @@
 
 import json
 from typing import Any, Dict, Optional
-from src.dataset.schema import BiomedicalRecord, StructuredModelOutput
 
+from src.dataset.schema import BiomedicalRecord, StructuredModelOutput
 
 BIOEVIDENCE_SYSTEM_PROMPT = """You are BioEvidence-LLM, an expert biomedical literature analysis assistant.
 Your role is to analyze biomedical questions and provided source evidence strictly and accurately.

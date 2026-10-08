@@ -5,11 +5,12 @@ the immutable raw copy into data/raw/pubmedqa/, normalizes each sample
 into the canonical BiomedicalRecord schema, and generates an ingestion report.
 """
 
-from datetime import datetime, timezone
 import json
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
 import requests
 
 from src.dataset.schema import BiomedicalRecord, DecisionType, Provenance, TaskTaxonomy
@@ -37,7 +38,9 @@ class PubMedQALoader:
         self.raw_dir.mkdir(parents=True, exist_ok=True)
         self.interim_dir.mkdir(parents=True, exist_ok=True)
 
-    def download_raw(self, url: str = PUBMEDQA_ORIGINAL_URL, filename: str = "ori_pqal.json") -> Path:
+    def download_raw(
+        self, url: str = PUBMEDQA_ORIGINAL_URL, filename: str = "ori_pqal.json"
+    ) -> Path:
         """Download raw dataset immutably if not already present."""
         target_path = self.raw_dir / filename
         if target_path.exists():
@@ -63,7 +66,9 @@ class PubMedQALoader:
         with open(target, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def normalize_record(self, pmid: str, raw_item: Dict[str, Any], retrieval_date: str) -> BiomedicalRecord:
+    def normalize_record(
+        self, pmid: str, raw_item: Dict[str, Any], retrieval_date: str
+    ) -> BiomedicalRecord:
         """Normalize a single raw PubMedQA record into canonical BiomedicalRecord."""
         question = raw_item.get("QUESTION", "").strip()
         contexts = raw_item.get("CONTEXTS", [])
@@ -100,7 +105,9 @@ class PubMedQALoader:
         # Identify uncertainty markers in maybe decisions
         uncertainty = None
         if decision == DecisionType.MAYBE:
-            uncertainty = "The study findings are preliminary, inconclusive, or report conflicting outcomes."
+            uncertainty = (
+                "The study findings are preliminary, inconclusive, or report conflicting outcomes."
+            )
 
         provenance = Provenance(
             retrieval_date=retrieval_date,

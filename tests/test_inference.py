@@ -1,6 +1,10 @@
 """Unit tests for inference parser and schema repair."""
 
-from src.inference.schema_parser import extract_json_block, parse_and_validate_output, repair_truncated_json
+from src.inference.schema_parser import (
+    extract_json_block,
+    parse_and_validate_output,
+    repair_truncated_json,
+)
 
 
 def test_clean_json_extraction():

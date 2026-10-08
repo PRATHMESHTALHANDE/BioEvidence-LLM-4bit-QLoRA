@@ -2,9 +2,10 @@
 
 import logging
 from typing import Any, Dict, Optional
+
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import PeftModel
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 from src.dataset.prompts import BIOEVIDENCE_SYSTEM_PROMPT, build_user_prompt
 from src.inference.schema_parser import parse_and_validate_output

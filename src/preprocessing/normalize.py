@@ -13,15 +13,15 @@ def clean_text(text: str) -> str:
     text = unicodedata.normalize("NFKC", text)
 
     # Standardize quotation marks and dashes
-    text = re.sub(r'[\u2018\u2019]', "'", text)
-    text = re.sub(r'[\u201C\u201D]', '"', text)
-    text = re.sub(r'[\u2013\u2014]', '-', text)
+    text = re.sub(r"[\u2018\u2019]", "'", text)
+    text = re.sub(r"[\u201C\u201D]", '"', text)
+    text = re.sub(r"[\u2013\u2014]", "-", text)
 
     # Replace non-breaking spaces
-    text = text.replace('\u00a0', ' ')
+    text = text.replace("\u00a0", " ")
 
     # Collapse multiple spaces and excessive newlines
-    text = re.sub(r'[ \t]+', ' ', text)
-    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
 
     return text.strip()

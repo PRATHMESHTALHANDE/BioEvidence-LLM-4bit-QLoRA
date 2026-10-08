@@ -6,12 +6,13 @@ records, extracts questions, answers, and focus concepts, and normalizes
 them into canonical BiomedicalRecord instances.
 """
 
-from datetime import datetime, timezone
 import json
 import logging
-from pathlib import Path
-from typing import Any, Dict, List, Optional
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List
+
 import requests
 
 from src.dataset.schema import BiomedicalRecord, Provenance, TaskTaxonomy
@@ -48,7 +49,9 @@ class MedQuADLoader:
         """Download representative MedQuAD XML files if raw directory is empty."""
         existing_xmls = list(self.raw_dir.glob("**/*.xml"))
         if existing_xmls:
-            logger.info("Found %d existing MedQuAD XML files in %s", len(existing_xmls), self.raw_dir)
+            logger.info(
+                "Found %d existing MedQuAD XML files in %s", len(existing_xmls), self.raw_dir
+            )
             return existing_xmls
 
         downloaded: List[Path] = []
@@ -85,21 +88,29 @@ class MedQuADLoader:
             for pair in qapairs_node.findall("QAPair"):
                 pid = pair.attrib.get("pid", "0")
                 question_node = pair.find("Question")
-                question = question_node.text.strip() if question_node is not None and question_node.text else ""
+                question = (
+                    question_node.text.strip()
+                    if question_node is not None and question_node.text
+                    else ""
+                )
                 qtype = question_node.attrib.get("qtype", "") if question_node is not None else ""
                 answer_node = pair.find("Answer")
-                answer = answer_node.text.strip() if answer_node is not None and answer_node.text else ""
+                answer = (
+                    answer_node.text.strip() if answer_node is not None and answer_node.text else ""
+                )
 
                 if question and answer:
-                    qa_pairs.append({
-                        "doc_id": doc_id,
-                        "pid": pid,
-                        "source": source_name,
-                        "focus": focus,
-                        "question": question,
-                        "qtype": qtype,
-                        "answer": answer,
-                    })
+                    qa_pairs.append(
+                        {
+                            "doc_id": doc_id,
+                            "pid": pid,
+                            "source": source_name,
+                            "focus": focus,
+                            "question": question,
+                            "qtype": qtype,
+                            "answer": answer,
+                        }
+                    )
         return qa_pairs
 
     def normalize_record(self, item: Dict[str, Any], retrieval_date: str) -> BiomedicalRecord:
@@ -134,7 +145,9 @@ class MedQuADLoader:
             question=item["question"],
             answer=item["answer"],
             decision=None,
-            evidence=[item["answer"][:250] + "..."] if len(item["answer"]) > 250 else [item["answer"]],
+            evidence=[item["answer"][:250] + "..."]
+            if len(item["answer"]) > 250
+            else [item["answer"]],
             uncertainty=None,
             limitations=[],
             language="en",

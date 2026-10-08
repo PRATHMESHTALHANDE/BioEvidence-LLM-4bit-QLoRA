@@ -11,6 +11,7 @@ import argparse
 import logging
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 from huggingface_hub import HfApi, create_repo
 
@@ -32,6 +33,7 @@ def publish_model(
     if not hf_token:
         try:
             from huggingface_hub import get_token
+
             hf_token = get_token()
         except ImportError:
             pass
@@ -59,17 +61,24 @@ def publish_model(
     plots_dest.mkdir(parents=True, exist_ok=True)
     if plots_src.exists():
         import shutil
+
         for plot_img in plots_src.glob("*.png"):
             shutil.copy(plot_img, plots_dest / plot_img.name)
-        logger.info("Packaged %d Seaborn visualization plots into model repository.", len(list(plots_dest.glob("*.png"))))
+        logger.info(
+            "Packaged %d Seaborn visualization plots into model repository.",
+            len(list(plots_dest.glob("*.png"))),
+        )
 
     # Ensure model card README.md is inside adapter folder
     model_card = Path("models/adapters/README.md")
     if model_card.exists() and not (adapter_path / "README.md").exists():
         import shutil
+
         shutil.copy(model_card, adapter_path / "README.md")
 
-    logger.info("Uploading adapter weights, visualizations, and model card from %s...", adapter_path)
+    logger.info(
+        "Uploading adapter weights, visualizations, and model card from %s...", adapter_path
+    )
     api.upload_folder(
         folder_path=str(adapter_path),
         repo_id=repo_id,
@@ -97,6 +106,7 @@ def publish_dataset(
     if not hf_token:
         try:
             from huggingface_hub import get_token
+
             hf_token = get_token()
         except ImportError:
             pass
@@ -112,7 +122,9 @@ def publish_dataset(
 
     api = HfApi(token=hf_token)
     logger.info("Verifying/creating Hugging Face dataset repository: %s", repo_id)
-    create_repo(repo_id=repo_id, repo_type="dataset", token=hf_token, private=private, exist_ok=True)
+    create_repo(
+        repo_id=repo_id, repo_type="dataset", token=hf_token, private=private, exist_ok=True
+    )
 
     sft_path = Path(sft_file)
     eval_path = Path(eval_file)
@@ -159,10 +171,19 @@ def publish_dataset(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Publish BioEvidence-LLM to Hugging Face Hub")
     parser.add_argument("--model", action="store_true", help="Publish trained model adapter")
-    parser.add_argument("--dataset", action="store_true", help="Publish SFT and evaluation datasets")
+    parser.add_argument(
+        "--dataset", action="store_true", help="Publish SFT and evaluation datasets"
+    )
     parser.add_argument("--token", type=str, default=None, help="Hugging Face Access Token (WRITE)")
-    parser.add_argument("--model-repo", type=str, default="Bhupati1998/BioEvidence-LLM-1.5B", help="Model Repo ID")
-    parser.add_argument("--dataset-repo", type=str, default="Bhupati1998/BioEvidence-Datasets", help="Dataset Repo ID")
+    parser.add_argument(
+        "--model-repo", type=str, default="Bhupati1998/BioEvidence-LLM-1.5B", help="Model Repo ID"
+    )
+    parser.add_argument(
+        "--dataset-repo",
+        type=str,
+        default="Bhupati1998/BioEvidence-Datasets",
+        help="Dataset Repo ID",
+    )
     parser.add_argument("--private", action="store_true", help="Create as private repository")
     args = parser.parse_args()
 

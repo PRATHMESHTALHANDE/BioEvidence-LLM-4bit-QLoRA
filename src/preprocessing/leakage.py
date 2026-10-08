@@ -1,8 +1,9 @@
 """PMID/Article-level train-test splitting to strictly prevent data leakage."""
 
-from collections import defaultdict
 import random
-from typing import Any, Dict, List, Set, Tuple
+from collections import defaultdict
+from typing import Any, Dict, List, Tuple
+
 from src.dataset.schema import BiomedicalRecord
 
 
@@ -41,7 +42,9 @@ def split_records_by_pmid(
     # Overlap validation assertion
     overlap = train_keys.intersection(eval_keys)
     if overlap:
-        raise ValueError(f"CRITICAL LEAKAGE DETECTED: {len(overlap)} articles exist in both splits!")
+        raise ValueError(
+            f"CRITICAL LEAKAGE DETECTED: {len(overlap)} articles exist in both splits!"
+        )
 
     stats = {
         "train_articles": len(train_keys),

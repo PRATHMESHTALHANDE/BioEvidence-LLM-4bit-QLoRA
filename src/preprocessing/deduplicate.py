@@ -2,6 +2,7 @@
 
 import hashlib
 from typing import List, Set, Tuple
+
 from src.dataset.schema import BiomedicalRecord
 
 

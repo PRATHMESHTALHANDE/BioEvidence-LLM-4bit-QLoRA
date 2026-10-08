@@ -3,7 +3,8 @@
 import json
 import logging
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict
+
 from src.dataset.schema import DecisionType, StructuredModelOutput
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 """Unit tests for PubMedQA loader and normalizer."""
 
-import json
 from pathlib import Path
+
 from src.data.pubmedqa_loader import PubMedQALoader
 from src.dataset.schema import DecisionType, TaskTaxonomy
 

@@ -1,6 +1,7 @@
 """Heuristic quality scoring and automated artifact filtering."""
 
 from typing import List, Tuple
+
 from src.dataset.schema import BiomedicalRecord
 
 MIN_CONTEXT_CHARS = 50

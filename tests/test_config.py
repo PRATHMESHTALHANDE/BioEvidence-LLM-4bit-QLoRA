@@ -1,12 +1,10 @@
 """Unit tests for configuration loading and validation."""
 
-from pathlib import Path
 from src.utils.config import (
     get_dataset_config,
     get_evaluation_config,
     get_model_config,
     get_training_config,
-    load_yaml,
 )
 
 

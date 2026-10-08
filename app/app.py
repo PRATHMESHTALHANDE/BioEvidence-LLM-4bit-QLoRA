@@ -12,12 +12,12 @@ Comprehensive 6-Tab Interactive Exhibition:
 import json
 import logging
 import os
-from pathlib import Path
 import subprocess
 import sys
 import time
-import gc
+from pathlib import Path
 from typing import Generator, Tuple
+
 from dotenv import load_dotenv
 
 # Ensure project root is in sys.path
@@ -28,14 +28,16 @@ if str(PROJECT_ROOT) not in sys.path:
 load_dotenv()
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import gradio as gr
+
 from src.inference.generator import MANDATORY_MEDICAL_DISCLAIMER
 from src.utils.visualizer import (
-    generate_loss_curve,
     generate_benchmark_comparison,
     generate_dataset_distribution,
+    generate_loss_curve,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,10 +55,13 @@ DATASET_EXPLORER_SAMPLES = {
         "answer": "Premature births from rural mothers have a significantly higher risk of stillbirth and neonatal mortality compared to urban infants.",
         "evidence": "Infants of rural residence had a higher mortality (adjusted odds ratio (OR) 1.26, 95% confidence interval (CI) 1.07 to 1.48, p = 0.005). Regional birth data also showed a higher stillbirth rate among rural infants (OR 1.20, 95% CI 1.09 to 1.32, p<0.001).",
         "uncertainty": "Regional cohort limited to New South Wales and Australian Capital Territory.",
-        "limitations": ["Retrospective cohort analysis (1992-2002)", "Geographically restricted population"],
+        "limitations": [
+            "Retrospective cohort analysis (1992-2002)",
+            "Geographically restricted population",
+        ],
         "context": "BACKGROUND: Patients living in rural areas may be at a disadvantage in accessing tertiary health care. METHODS: Perinatal characteristics, major morbidity and case mix adjusted mortality were compared between 1879 rural and 6775 urban infants <32 weeks gestational age. RESULTS: Infants of rural residence had a higher mortality (adjusted odds ratio (OR) 1.26, 95% confidence interval (CI) 1.07 to 1.48, p = 0.005). Regional birth data also showed a higher stillbirth rate among rural infants (OR 1.20, 95% CI 1.09 to 1.32, p<0.001).",
-        "pre_sft": "⚠️ [Pre-SFT Base Model Output]\n\"Hello! Rural and urban healthcare discrepancies are well documented in global literature. Generally speaking, premature infants face complications like respiratory distress and infections. Access to specialized hospitals can influence mortality. It is plausible that rural mothers face challenges. Consult public health guidelines for more information.\"\n\n❌ Deficiencies: No JSON contract, no decision label, missing exact p-values (p=0.005, OR 1.26), conversational filler.",
-        "post_sft": "✅ [Post-SFT Fine-Tuned BioEvidence-LLM Output]\n{\n  \"decision\": \"yes\",\n  \"answer\": \"Premature births from rural mothers have a significantly higher risk of stillbirth and neonatal intensive care mortality compared to urban infants.\",\n  \"evidence\": [\"Infants of rural residence had a higher mortality (adjusted odds ratio (OR) 1.26, 95% confidence interval (CI) 1.07 to 1.48, p = 0.005). Regional birth data also showed a higher stillbirth rate among rural infants (OR 1.20, 95% CI 1.09 to 1.32, p<0.001).\"],\n  \"uncertainty\": \"Regional cohort limited to New South Wales and Australian Capital Territory.\",\n  \"limitations\": [\"Retrospective cohort analysis (1992-2002)\", \"Geographically restricted population\"]\n}\n\n🎯 SFT Impact: 100% structured JSON, exact OR 1.26 and p=0.005 extracted verbatim, uncertainty captured.",
+        "pre_sft": '⚠️ [Pre-SFT Base Model Output]\n"Hello! Rural and urban healthcare discrepancies are well documented in global literature. Generally speaking, premature infants face complications like respiratory distress and infections. Access to specialized hospitals can influence mortality. It is plausible that rural mothers face challenges. Consult public health guidelines for more information."\n\n❌ Deficiencies: No JSON contract, no decision label, missing exact p-values (p=0.005, OR 1.26), conversational filler.',
+        "post_sft": '✅ [Post-SFT Fine-Tuned BioEvidence-LLM Output]\n{\n  "decision": "yes",\n  "answer": "Premature births from rural mothers have a significantly higher risk of stillbirth and neonatal intensive care mortality compared to urban infants.",\n  "evidence": ["Infants of rural residence had a higher mortality (adjusted odds ratio (OR) 1.26, 95% confidence interval (CI) 1.07 to 1.48, p = 0.005). Regional birth data also showed a higher stillbirth rate among rural infants (OR 1.20, 95% CI 1.09 to 1.32, p<0.001)."],\n  "uncertainty": "Regional cohort limited to New South Wales and Australian Capital Territory.",\n  "limitations": ["Retrospective cohort analysis (1992-2002)", "Geographically restricted population"]\n}\n\n🎯 SFT Impact: 100% structured JSON, exact OR 1.26 and p=0.005 extracted verbatim, uncertainty captured.',
     },
     "Sample 2: Cervical Cancer Lymphadenectomy (PubMedQA: PMID 25859857)": {
         "pmid": "25859857",
@@ -68,8 +73,8 @@ DATASET_EXPLORER_SAMPLES = {
         "uncertainty": "Clinical non-responders showed higher nodal involvement requiring uniform surgical margins.",
         "limitations": ["Retrospective matched-case study design"],
         "context": "BACKGROUND: The effect of neoadjuvant chemotherapy (NACT) on topographical distribution patterns of lymph node metastasis was unknown. METHODS: Patients with FIGO stage IB1-IIB who underwent radical surgery with or without NACT were enrolled (3527 patients). RESULTS: No significant difference was observed in overall lymph node metastasis distribution between groups (p = 0.081).",
-        "pre_sft": "⚠️ [Pre-SFT Base Model Output]\n\"Neoadjuvant chemotherapy (NACT) is widely used in clinical oncology to downstage tumors prior to surgery. In cervical cancer, surgical resection depends on patient response. While some studies suggest lymph node involvement decreases, extensive lymphadenectomy is usually still considered standard practice.\"\n\n❌ Deficiencies: Vague opinion, no explicit \"NO\" label, missing exact non-significant p-value (p=0.081), no JSON format.",
-        "post_sft": "✅ [Post-SFT Fine-Tuned BioEvidence-LLM Output]\n{\n  \"decision\": \"no\",\n  \"answer\": \"The frequency and topographic distribution of lymph node metastasis are not modified by neoadjuvant chemotherapy. Systematic and extensive lymphadenectomy remains necessary.\",\n  \"evidence\": [\"We analyzed groups of 167 and 140 patients who were diagnosed with lymph node metastasis in the matched primary surgery group and NACT group, respectively, and no significant difference was observed (p = 0.081).\"],\n  \"uncertainty\": \"Clinical non-responders showed higher nodal involvement requiring uniform surgical margins.\",\n  \"limitations\": [\"Retrospective matched-case study design\"]\n}\n\n🎯 SFT Impact: Deterministic NO decision, p=0.081 cited verbatim, surgical margin caveat preserved.",
+        "pre_sft": '⚠️ [Pre-SFT Base Model Output]\n"Neoadjuvant chemotherapy (NACT) is widely used in clinical oncology to downstage tumors prior to surgery. In cervical cancer, surgical resection depends on patient response. While some studies suggest lymph node involvement decreases, extensive lymphadenectomy is usually still considered standard practice."\n\n❌ Deficiencies: Vague opinion, no explicit "NO" label, missing exact non-significant p-value (p=0.081), no JSON format.',
+        "post_sft": '✅ [Post-SFT Fine-Tuned BioEvidence-LLM Output]\n{\n  "decision": "no",\n  "answer": "The frequency and topographic distribution of lymph node metastasis are not modified by neoadjuvant chemotherapy. Systematic and extensive lymphadenectomy remains necessary.",\n  "evidence": ["We analyzed groups of 167 and 140 patients who were diagnosed with lymph node metastasis in the matched primary surgery group and NACT group, respectively, and no significant difference was observed (p = 0.081)."],\n  "uncertainty": "Clinical non-responders showed higher nodal involvement requiring uniform surgical margins.",\n  "limitations": ["Retrospective matched-case study design"]\n}\n\n🎯 SFT Impact: Deterministic NO decision, p=0.081 cited verbatim, surgical margin caveat preserved.',
     },
     "Sample 3: Metastatic Breast Cancer Bone Scans (PubMedQA: PMID 17890090)": {
         "pmid": "17890090",
@@ -79,10 +84,13 @@ DATASET_EXPLORER_SAMPLES = {
         "answer": "Routine bone scintigraphy is not required if CT of thorax, abdomen, and pelvis is performed in newly diagnosed metastatic breast cancer.",
         "evidence": "CT detected metastatic bone lesions in 43 (98%) of 44 patients with bone metastases. BS was positive in all patients with bone metastases. There were 11 cases of false positive findings on BS.",
         "uncertainty": "One patient had an isolated solitary femoral metastasis outside standard CT coverage.",
-        "limitations": ["Prospective single-cohort study (n=77 pairs)", "12-month follow-up duration"],
+        "limitations": [
+            "Prospective single-cohort study (n=77 pairs)",
+            "12-month follow-up duration",
+        ],
         "context": "BACKGROUND: The aim of this study was to determine whether bone scans (BS) can be avoided if pelvis was included in CT thorax and abdomen. RESULTS: CT detected metastatic bone lesions in 43 (98%) of 44 patients with bone metastases. There were 11 cases of false positive findings on BS.",
-        "pre_sft": "⚠️ [Pre-SFT Base Model Output]\n\"Bone scintigraphy has historically been the primary nuclear medicine imaging tool for skeletal metastasis screening. Modern CT scans provide high anatomical resolution. Both modalities have their strengths and weaknesses in cancer staging, and physicians often correlate both.\"\n\n❌ Deficiencies: Missing decision, missing sensitivity rate (98%), misses femoral caveat, no JSON.",
-        "post_sft": "✅ [Post-SFT Fine-Tuned BioEvidence-LLM Output]\n{\n  \"decision\": \"yes\",\n  \"answer\": \"Routine bone scintigraphy is not required if CT of thorax, abdomen, and pelvis is performed in newly diagnosed metastatic breast cancer.\",\n  \"evidence\": [\"CT detected metastatic bone lesions in 43 (98%) of 44 patients with bone metastases. BS was positive in all patients with bone metastases. There were 11 cases of false positive findings on BS.\"],\n  \"uncertainty\": \"One patient had an isolated solitary femoral metastasis outside standard CT coverage.\",\n  \"limitations\": [\"Prospective single-cohort study (n=77 pairs)\", \"12-month follow-up duration\"]\n}\n\n🎯 SFT Impact: Deterministic YES decision, 98% detection rate cited verbatim, femoral caveat documented.",
+        "pre_sft": '⚠️ [Pre-SFT Base Model Output]\n"Bone scintigraphy has historically been the primary nuclear medicine imaging tool for skeletal metastasis screening. Modern CT scans provide high anatomical resolution. Both modalities have their strengths and weaknesses in cancer staging, and physicians often correlate both."\n\n❌ Deficiencies: Missing decision, missing sensitivity rate (98%), misses femoral caveat, no JSON.',
+        "post_sft": '✅ [Post-SFT Fine-Tuned BioEvidence-LLM Output]\n{\n  "decision": "yes",\n  "answer": "Routine bone scintigraphy is not required if CT of thorax, abdomen, and pelvis is performed in newly diagnosed metastatic breast cancer.",\n  "evidence": ["CT detected metastatic bone lesions in 43 (98%) of 44 patients with bone metastases. BS was positive in all patients with bone metastases. There were 11 cases of false positive findings on BS."],\n  "uncertainty": "One patient had an isolated solitary femoral metastasis outside standard CT coverage.",\n  "limitations": ["Prospective single-cohort study (n=77 pairs)", "12-month follow-up duration"]\n}\n\n🎯 SFT Impact: Deterministic YES decision, 98% detection rate cited verbatim, femoral caveat documented.',
     },
 }
 
@@ -120,7 +128,7 @@ def load_explorer_sample(sample_key: str):
         item.get("question", ""),
         item.get("context", ""),
         item.get("answer", ""),
-        f"> 📌 **Verbatim Ground Truth Evidence Quote:**\n> *\"{item.get('evidence', '')}\"*",
+        f'> 📌 **Verbatim Ground Truth Evidence Quote:**\n> *"{item.get("evidence", "")}"*',
         json.dumps(item, indent=2),
         item.get("pre_sft", "No baseline data."),
         item.get("post_sft", "No fine-tuned data."),
@@ -136,6 +144,7 @@ def get_live_generator(device: str = "cpu"):
     norm_dev = "cpu" if "cpu" in device.lower() else "cuda"
     if norm_dev not in _LIVE_GENERATORS:
         from src.inference.generator import BioEvidenceGenerator
+
         adapter_path = str(PROJECT_ROOT / "models" / "adapters" / "bioevidence-lora-best")
         gen = BioEvidenceGenerator(
             base_model_name="Qwen/Qwen2.5-1.5B-Instruct",
@@ -205,7 +214,6 @@ def analyze_evidence(
         )
         latency = time.time() - t0
         struct = result.get("structured", {})
-        raw_output = result.get("raw_output", "")
 
         decision = struct.get("decision", "maybe")
         if hasattr(decision, "value"):
@@ -215,13 +223,15 @@ def analyze_evidence(
         answer = struct.get("answer", "")
         evidence_list = struct.get("evidence", [])
         evidence_citation = (
-            evidence_list[0] if evidence_list and len(evidence_list) > 0 else (context[:200] + "...")
+            evidence_list[0]
+            if evidence_list and len(evidence_list) > 0
+            else (context[:200] + "...")
         )
         uncertainty = struct.get("uncertainty", "") or "No explicit uncertainty noted in text."
         limitations = struct.get("limitations", [])
 
         decision_badge = f"### Decision: **{decision_str}**"
-        evidence_display = f"> 📌 **Verbatim Cited Evidence:**\n> *\"{evidence_citation}\"*"
+        evidence_display = f'> 📌 **Verbatim Cited Evidence:**\n> *"{evidence_citation}"*'
         limitations_display = (
             "\n".join([f"- {lim}" for lim in limitations])
             if limitations
@@ -231,9 +241,9 @@ def analyze_evidence(
 
         base_comparison = (
             "⚠️ [Pre-SFT: Base Model (Qwen2.5-1.5B Zero-Shot Baseline Pattern)]\n"
-            "\"Sure! In biomedical research, clinical interventions often influence biomarker outcomes depending on "
+            '"Sure! In biomedical research, clinical interventions often influence biomarker outcomes depending on '
             "methodology. While observed findings suggest possible therapeutic efficacy, patients should always "
-            "consult with an oncologist or primary physician before changing treatment regimens.\"\n\n"
+            'consult with an oncologist or primary physician before changing treatment regimens."\n\n'
             "❌ Baseline Deficiencies:\n"
             "• Missing structured JSON schema (outputs conversational prose)\n"
             "• Lacks deterministic YES / NO / MAYBE classification\n"
@@ -245,7 +255,7 @@ def analyze_evidence(
             f"✅ [Post-SFT: Live Neural Inference from models/adapters/bioevidence-lora-best]\n"
             f"• Decision: {decision_str}\n"
             f"• Grounded Synthesis: {answer}\n"
-            f"• Verbatim Cited Quote: \"{evidence_citation}\"\n"
+            f'• Verbatim Cited Quote: "{evidence_citation}"\n'
             f"• Preserved Uncertainty: {uncertainty}\n"
             f"• Documented Limitations: {', '.join(limitations) if limitations else 'None'}\n\n"
             f"🎯 Live Verification on {target_dev.upper()} ({latency:.2f}s latency):\n"
@@ -293,7 +303,9 @@ def read_evaluation_report() -> str:
 
 
 def get_empirical_results_markdown() -> str:
-    metrics_file = PROJECT_ROOT / "outputs" / "evaluation" / "comparison" / "evaluation_metrics.json"
+    metrics_file = (
+        PROJECT_ROOT / "outputs" / "evaluation" / "comparison" / "evaluation_metrics.json"
+    )
     if metrics_file.exists():
         try:
             data = json.loads(metrics_file.read_text(encoding="utf-8"))
@@ -304,23 +316,23 @@ def get_empirical_results_markdown() -> str:
             status_banner = f"""<div style="border-left: 4px solid #10b981; background: rgba(16, 185, 129, 0.1); padding: 10px 14px; border-radius: 6px; margin: 10px 0;">
 ✅ <b>LIVE EMPIRICAL BENCHMARK SCORED:</b> Evaluated on {total} held-out test articles using <code>{dev}</code> compute engine. Live measured deltas shown below:
 </div>"""
-            b_acc = f"{base.get('decision_accuracy', 0.622)*100:.1f}%"
+            b_acc = f"{base.get('decision_accuracy', 0.622) * 100:.1f}%"
             b_f1 = f"{base.get('decision_macro_f1', 0.584):.4f}"
-            b_json = f"{base.get('json_validity_rate', 0.442)*100:.1f}%"
-            b_ev = f"{base.get('average_evidence_grounding', 0.650)*100:.1f}%"
-            b_hal = f"{base.get('hallucination_rate', 0.199)*100:.1f}%"
+            b_json = f"{base.get('json_validity_rate', 0.442) * 100:.1f}%"
+            b_ev = f"{base.get('average_evidence_grounding', 0.650) * 100:.1f}%"
+            b_hal = f"{base.get('hallucination_rate', 0.199) * 100:.1f}%"
 
-            ft_acc = f"**{ft.get('decision_accuracy', 0.782)*100:.1f}%**"
+            ft_acc = f"**{ft.get('decision_accuracy', 0.782) * 100:.1f}%**"
             ft_f1 = f"**{ft.get('decision_macro_f1', 0.735):.4f}**"
-            ft_json = f"**{ft.get('json_validity_rate', 0.987)*100:.1f}%**"
-            ft_ev = f"**{ft.get('average_evidence_grounding', 0.923)*100:.1f}%**"
-            ft_hal = f"**{ft.get('hallucination_rate', 0.032)*100:.1f}%**"
+            ft_json = f"**{ft.get('json_validity_rate', 0.987) * 100:.1f}%**"
+            ft_ev = f"**{ft.get('average_evidence_grounding', 0.923) * 100:.1f}%**"
+            ft_hal = f"**{ft.get('hallucination_rate', 0.032) * 100:.1f}%**"
 
-            delta_acc = f"`+{(ft.get('decision_accuracy', 0.782) - base.get('decision_accuracy', 0.622))*100:.1f}%`"
+            delta_acc = f"`+{(ft.get('decision_accuracy', 0.782) - base.get('decision_accuracy', 0.622)) * 100:.1f}%`"
             delta_f1 = f"`+{(ft.get('decision_macro_f1', 0.735) - base.get('decision_macro_f1', 0.584)):.4f}`"
-            delta_json = f"`+{(ft.get('json_validity_rate', 0.987) - base.get('json_validity_rate', 0.442))*100:.1f}%`"
-            delta_ev = f"`+{(ft.get('average_evidence_grounding', 0.923) - base.get('average_evidence_grounding', 0.650))*100:.1f}%`"
-            delta_hal = f"`-{(base.get('hallucination_rate', 0.199) - ft.get('hallucination_rate', 0.032))*100:.1f}%`"
+            delta_json = f"`+{(ft.get('json_validity_rate', 0.987) - base.get('json_validity_rate', 0.442)) * 100:.1f}%`"
+            delta_ev = f"`+{(ft.get('average_evidence_grounding', 0.923) - base.get('average_evidence_grounding', 0.650)) * 100:.1f}%`"
+            delta_hal = f"`-{(base.get('hallucination_rate', 0.199) - ft.get('hallucination_rate', 0.032)) * 100:.1f}%`"
             col_post = "Post-SFT Fine-Tuned (Empirically Measured)"
             col_delta = "Measured Delta / Gain"
         except Exception:
@@ -334,8 +346,20 @@ def get_empirical_results_markdown() -> str:
 • <b>Evaluation Status:</b> ⏳ <i>Evaluation Ready to Execute</i>. Run <b>\"Live Benchmark Evaluation\"</b> in Tab 3 to score your fine-tuned LoRA adapter on 156 held-out test articles.
 </div>"""
         b_acc, b_f1, b_json, b_ev, b_hal = "62.2%", "0.5841", "44.2%", "65.0%", "19.9% *(High)*"
-        ft_acc, ft_f1, ft_json, ft_ev, ft_hal = "**78.2%** *(Target)*", "**0.7348** *(Target)*", "**98.7%** *(Target)*", "**92.3%** *(Target)*", "**3.2%** *(Target)*"
-        delta_acc, delta_f1, delta_json, delta_ev, delta_hal = "`+16.0% (Target)`", "`+0.1507 (Target)`", "`+54.5% (Target)`", "`+27.3% (Target)`", "`-16.7% (Target)`"
+        ft_acc, ft_f1, ft_json, ft_ev, ft_hal = (
+            "**78.2%** *(Target)*",
+            "**0.7348** *(Target)*",
+            "**98.7%** *(Target)*",
+            "**92.3%** *(Target)*",
+            "**3.2%** *(Target)*",
+        )
+        delta_acc, delta_f1, delta_json, delta_ev, delta_hal = (
+            "`+16.0% (Target)`",
+            "`+0.1507 (Target)`",
+            "`+54.5% (Target)`",
+            "`+27.3% (Target)`",
+            "`-16.7% (Target)`",
+        )
         col_post = "Post-SFT Target Milestone (Target Goal)"
         col_delta = "Target Delta / Expected Gain"
 
@@ -406,6 +430,7 @@ def run_training_action(
             adapter_plots = PROJECT_ROOT / "models" / "adapters" / "bioevidence-lora-best" / "plots"
             adapter_plots.mkdir(parents=True, exist_ok=True)
             import shutil
+
             for p in PLOTS_DIR.glob("*.png"):
                 shutil.copy(p, adapter_plots / p.name)
         except Exception as e:
@@ -418,7 +443,10 @@ def run_training_action(
             + "• Seaborn Visualizations generated & packaged for Hugging Face publishing!\n"
         )
     else:
-        yield "".join(output_lines[-25:]) + f"\n\n❌ Training exited with return code: {return_code}\n"
+        yield (
+            "".join(output_lines[-25:])
+            + f"\n\n❌ Training exited with return code: {return_code}\n"
+        )
 
 
 def run_evaluation_action(
@@ -447,10 +475,14 @@ def run_evaluation_action(
         f"Compute Device: {target_dev.upper()} | Scope: {mode_choice}\n"
         f"Test Set: data/evaluation/BioEvidence-Eval-v0.1.jsonl ({samples_choice})\n"
         f"Streaming live questions and fine-tuned model outputs below:\n"
-        f"{'-'*70}\n"
+        f"{'-' * 70}\n"
     )
 
-    cmd = [sys.executable, "-m", "src.evaluation.evaluator", "--device", target_dev] + samples_arg + mode_arg
+    cmd = (
+        [sys.executable, "-m", "src.evaluation.evaluator", "--device", target_dev]
+        + samples_arg
+        + mode_arg
+    )
 
     proc = subprocess.Popen(
         cmd,
@@ -481,7 +513,9 @@ def run_evaluation_action(
         yield "".join(output_lines[-20:]) + f"\n\n❌ Evaluation exited with code: {return_code}\n"
 
 
-def deploy_to_hf_action(token: str, model_repo: str, dataset_repo: str, private: bool) -> Generator[str, None, None]:
+def deploy_to_hf_action(
+    token: str, model_repo: str, dataset_repo: str, private: bool
+) -> Generator[str, None, None]:
     effective_token = token.strip() if token and token.strip() else os.getenv("HF_TOKEN", "")
 
     if not effective_token:
@@ -525,8 +559,7 @@ def deploy_to_hf_action(token: str, model_repo: str, dataset_repo: str, private:
 
     if return_code == 0:
         yield (
-            "".join(output_lines[-20:])
-            + f"\n\n🎉 DEPLOYMENT SUCCESSFUL!\n"
+            "".join(output_lines[-20:]) + f"\n\n🎉 DEPLOYMENT SUCCESSFUL!\n"
             f"🔗 Model: https://huggingface.co/{model_repo}\n"
             f"🔗 Datasets: https://huggingface.co/datasets/{dataset_repo}\n"
         )
@@ -647,14 +680,28 @@ Select any sample below to inspect the raw context, clinical question, decision 
                         explorer_evidence = gr.Markdown()
                         explorer_json = gr.Code(label="Raw Pydantic Record Schema", language="json")
 
-                with gr.Accordion("⚖️ Model Behavior on This Exact Sample: Before SFT (Base Model) vs After SFT (BioEvidence-LLM)", open=True):
+                with gr.Accordion(
+                    "⚖️ Model Behavior on This Exact Sample: Before SFT (Base Model) vs After SFT (BioEvidence-LLM)",
+                    open=True,
+                ):
                     with gr.Row():
                         with gr.Column(scale=1):
-                            sample_pre_sft = gr.Textbox(label="⚠️ Before SFT: Base Model (Qwen2.5-1.5B Zero-Shot Output)", lines=6, interactive=False)
+                            sample_pre_sft = gr.Textbox(
+                                label="⚠️ Before SFT: Base Model (Qwen2.5-1.5B Zero-Shot Output)",
+                                lines=6,
+                                interactive=False,
+                            )
                         with gr.Column(scale=1):
-                            sample_post_sft = gr.Textbox(label="✅ After SFT: Fine-Tuned (BioEvidence-LLM Output)", lines=6, interactive=False)
+                            sample_post_sft = gr.Textbox(
+                                label="✅ After SFT: Fine-Tuned (BioEvidence-LLM Output)",
+                                lines=6,
+                                interactive=False,
+                            )
                     with gr.Row():
-                        run_sample_btn = gr.Button("⚡ Run Live Fine-Tuned Model Inference on this Sample", variant="primary")
+                        run_sample_btn = gr.Button(
+                            "⚡ Run Live Fine-Tuned Model Inference on this Sample",
+                            variant="primary",
+                        )
                     sample_inference_status = gr.Markdown()
 
                 run_sample_btn.click(
@@ -702,15 +749,23 @@ The charts below visualize the 4-bit QLoRA training dynamics, held-out benchmark
                 with gr.Row():
                     with gr.Column(scale=1):
                         gr.Markdown("### ⚡ Loss Convergence & LR Schedule")
-                        img_plot1 = gr.Image(value=plot1, label="Step-by-Step Training Loss & Cosine Decay (330 Steps)")
+                        img_plot1 = gr.Image(
+                            value=plot1,
+                            label="Step-by-Step Training Loss & Cosine Decay (330 Steps)",
+                        )
                     with gr.Column(scale=1):
                         gr.Markdown("### 🏆 Benchmark Comparison (Zero-Shot vs Fine-Tuned)")
-                        img_plot2 = gr.Image(value=plot2, label="Quantitative Benchmark Gains on 156 Held-Out Articles")
+                        img_plot2 = gr.Image(
+                            value=plot2,
+                            label="Quantitative Benchmark Gains on 156 Held-Out Articles",
+                        )
 
                 with gr.Row():
                     with gr.Column(scale=1):
                         gr.Markdown("### 📊 Dataset Composition & Class Balance")
-                        img_plot3 = gr.Image(value=plot3, label="PubMedQA Class Distribution & Source Article Counts")
+                        img_plot3 = gr.Image(
+                            value=plot3, label="PubMedQA Class Distribution & Source Article Counts"
+                        )
                     with gr.Column(scale=1):
                         gr.Markdown(
                             """### 🔍 Key Quantitative Insights
@@ -719,21 +774,34 @@ The charts below visualize the 4-bit QLoRA training dynamics, held-out benchmark
 - **Macro F1 Gain (+0.1507):** Solves severe class imbalance by preventing overconfident `YES` classifications on preliminary studies.
 """
                         )
-                        refresh_plots_btn = gr.Button("🔄 Re-generate & Update Visualizations with Latest Run Data", variant="secondary")
-                        refresh_plots_btn.click(fn=get_plots, outputs=[img_plot1, img_plot2, img_plot3])
+                        refresh_plots_btn = gr.Button(
+                            "🔄 Re-generate & Update Visualizations with Latest Run Data",
+                            variant="secondary",
+                        )
+                        refresh_plots_btn.click(
+                            fn=get_plots, outputs=[img_plot1, img_plot2, img_plot3]
+                        )
 
-                with gr.Accordion("⚡ Execute Live Benchmark Evaluation (Held-Out Test Articles)", open=False):
+                with gr.Accordion(
+                    "⚡ Execute Live Benchmark Evaluation (Held-Out Test Articles)", open=False
+                ):
                     gr.Markdown(
                         "Run live comparative scoring of the Base Model vs. your trained LoRA adapter (`models/adapters/bioevidence-lora-best`) on the held-out test dataset (`data/evaluation/BioEvidence-Eval-v0.1.jsonl`)."
                     )
                     with gr.Row():
                         eval_device_radio = gr.Radio(
-                            choices=["CPU (Thermal-Safe, 12th Gen Intel i7)", "GPU (NVIDIA RTX 3050)"],
+                            choices=[
+                                "CPU (Thermal-Safe, 12th Gen Intel i7)",
+                                "GPU (NVIDIA RTX 3050)",
+                            ],
                             value="CPU (Thermal-Safe, 12th Gen Intel i7)",
                             label="Evaluation Hardware Device",
                         )
                         eval_mode_radio = gr.Radio(
-                            choices=["Fine-Tuned Model Only (Fastest)", "Both Base & Fine-Tuned Models (Comparative)"],
+                            choices=[
+                                "Fine-Tuned Model Only (Fastest)",
+                                "Both Base & Fine-Tuned Models (Comparative)",
+                            ],
                             value="Fine-Tuned Model Only (Fastest)",
                             label="Evaluation Scope",
                         )
@@ -807,7 +875,9 @@ Select your hardware profile and execution mode.
                     outputs=[img_plot1, img_plot2, img_plot3],
                 )
 
-                with gr.Accordion("📄 View Latest Training Run Report (docs/TRAINING_RUN_REPORT.md)", open=False):
+                with gr.Accordion(
+                    "📄 View Latest Training Run Report (docs/TRAINING_RUN_REPORT.md)", open=False
+                ):
                     report_display = gr.Markdown(value=read_training_report)
                     refresh_report_btn = gr.Button("🔄 Refresh Report")
                     refresh_report_btn.click(fn=read_training_report, outputs=[report_display])
@@ -822,7 +892,10 @@ Test any biomedical question and source abstract. The model classifies the findi
                 with gr.Row():
                     with gr.Column(scale=1):
                         inference_device_radio = gr.Radio(
-                            choices=["CPU (Thermal-Safe, 12th Gen Intel i7)", "GPU (NVIDIA RTX 3050)"],
+                            choices=[
+                                "CPU (Thermal-Safe, 12th Gen Intel i7)",
+                                "GPU (NVIDIA RTX 3050)",
+                            ],
                             value="CPU (Thermal-Safe, 12th Gen Intel i7)",
                             label="Inference Compute Engine",
                         )
@@ -854,12 +927,19 @@ Test any biomedical question and source abstract. The model classifies the findi
                     with gr.Column(scale=1):
                         decision_badge = gr.Markdown("### Decision: *Awaiting Input*")
                         answer_output = gr.Textbox(label="Evidence-Grounded Synthesis", lines=3)
-                        evidence_output = gr.Markdown("> 📌 **Verbatim Evidence Citations will appear here**")
-                        uncertainty_output = gr.Textbox(label="Preserved Uncertainty / Study Caveats", lines=2)
+                        evidence_output = gr.Markdown(
+                            "> 📌 **Verbatim Evidence Citations will appear here**"
+                        )
+                        uncertainty_output = gr.Textbox(
+                            label="Preserved Uncertainty / Study Caveats", lines=2
+                        )
                         limitations_output = gr.Markdown("**Study Limitations:**")
                         json_output = gr.Code(label="Raw JSON Model Contract", language="json")
 
-                with gr.Accordion("⚖️ Live SFT Impact Comparison: Base Model (Pre-SFT) vs Fine-Tuned (Post-SFT)", open=True):
+                with gr.Accordion(
+                    "⚖️ Live SFT Impact Comparison: Base Model (Pre-SFT) vs Fine-Tuned (Post-SFT)",
+                    open=True,
+                ):
                     with gr.Row():
                         with gr.Column(scale=1):
                             base_model_preview = gr.Textbox(
@@ -899,7 +979,7 @@ Test any biomedical question and source abstract. The model classifies the findi
             # TAB 6: HUGGING FACE HUB DEPLOYER
             with gr.Tab("🚀 Hugging Face Hub 1-Click Deployer"):
                 gr.Markdown(
-                    f"""## Cloud Deployment to Hugging Face Hub
+                    """## Cloud Deployment to Hugging Face Hub
 One-click publishing of your fine-tuned LoRA adapter and datasets directly to your profile: **[`Bhupati1998`](https://huggingface.co/Bhupati1998)**.
 """
                 )
@@ -922,7 +1002,9 @@ One-click publishing of your fine-tuned LoRA adapter and datasets directly to yo
                         value=default_dataset_repo,
                     )
 
-                deploy_btn = gr.Button("🚀 Deploy Model & Datasets to Hugging Face", variant="primary")
+                deploy_btn = gr.Button(
+                    "🚀 Deploy Model & Datasets to Hugging Face", variant="primary"
+                )
                 deploy_logs = gr.Textbox(
                     label="Live Deployment Logs",
                     lines=10,

@@ -6,9 +6,12 @@ Generates modern, publication-quality visualizations for:
 3. Dataset Class Distribution & Source Composition
 """
 
+import json
 from pathlib import Path
 from typing import Optional
+
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,6 +26,7 @@ OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 def set_custom_style():
     """Apply modern Seaborn styling."""
     import logging
+
     logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
     sns.set_theme(style="whitegrid", font="sans-serif")
     plt.rcParams["figure.dpi"] = 150
@@ -38,8 +42,11 @@ def parse_real_training_metrics():
     if not report_file.exists():
         return None
     import re
+
     content = report_file.read_text(encoding="utf-8")
-    matches = re.findall(r"\|\s*`?(\d+)`?\s*\|\s*\*\*?([\d\.]+)\*\*?\s*\|\s*`?([\d\.e\-\+]+)`?", content)
+    matches = re.findall(
+        r"\|\s*`?(\d+)`?\s*\|\s*\*\*?([\d\.]+)\*\*?\s*\|\s*`?([\d\.e\-\+]+)`?", content
+    )
     if len(matches) >= 5:
         steps = [int(m[0]) for m in matches]
         losses = [float(m[1]) for m in matches]
@@ -60,12 +67,17 @@ def generate_loss_curve(output_file: Optional[Path] = None) -> Path:
     else:
         steps = np.arange(1, 331)
         warmup_steps = 30
-        lr = np.array([
-            (s / warmup_steps) * 2e-4
-            if s <= warmup_steps
-            else 1e-5 + 0.5 * (2e-4 - 1e-5) * (1 + np.cos(np.pi * (s - warmup_steps) / (330 - warmup_steps)))
-            for s in steps
-        ])
+        lr = np.array(
+            [
+                (s / warmup_steps) * 2e-4
+                if s <= warmup_steps
+                else 1e-5
+                + 0.5
+                * (2e-4 - 1e-5)
+                * (1 + np.cos(np.pi * (s - warmup_steps) / (330 - warmup_steps)))
+                for s in steps
+            ]
+        )
         np.random.seed(42)
         loss = 0.70 + 0.99 * np.exp(-steps / 45.0) + np.random.normal(0, 0.015, size=len(steps))
         title_suffix = " (330 Steps Target)"
@@ -73,16 +85,37 @@ def generate_loss_curve(output_file: Optional[Path] = None) -> Path:
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
 
     # 1. Training Loss Plot
-    sns.lineplot(x=steps, y=loss, ax=ax1, color="#0284c7", linewidth=2.4, marker="o" if len(steps) < 50 else None, label="Actual Train Loss (Cross-Entropy)")
+    sns.lineplot(
+        x=steps,
+        y=loss,
+        ax=ax1,
+        color="#0284c7",
+        linewidth=2.4,
+        marker="o" if len(steps) < 50 else None,
+        label="Actual Train Loss (Cross-Entropy)",
+    )
     ax1.set_title(f"4-bit QLoRA Training Loss Convergence on RTX 3050{title_suffix}")
     ax1.set_ylabel("Loss")
     min_loss = float(np.min(loss))
-    ax1.axhline(min_loss, color="#10b981", linestyle="--", alpha=0.7, label=f"Best Converged Loss ({min_loss:.4f})")
+    ax1.axhline(
+        min_loss,
+        color="#10b981",
+        linestyle="--",
+        alpha=0.7,
+        label=f"Best Converged Loss ({min_loss:.4f})",
+    )
     ax1.legend(loc="upper right", frameon=True)
     ax1.set_ylim(max(0.4, min_loss - 0.2), float(np.max(loss)) + 0.2)
 
     # 2. Learning Rate Schedule
-    sns.lineplot(x=steps, y=lr * 1e4, ax=ax2, color="#8b5cf6", linewidth=2, label="Learning Rate (Cosine Schedule)")
+    sns.lineplot(
+        x=steps,
+        y=lr * 1e4,
+        ax=ax2,
+        color="#8b5cf6",
+        linewidth=2,
+        label="Learning Rate (Cosine Schedule)",
+    )
     ax2.set_title("Learning Rate Schedule with Warmup (Peak: 2.0e-4)")
     ax2.set_xlabel("Optimization Step")
     ax2.set_ylabel("LR (x 10^-4)")
@@ -99,7 +132,9 @@ def generate_benchmark_comparison(output_file: Optional[Path] = None) -> Path:
     set_custom_style()
     output_path = output_file or (OUTPUTS_DIR / "benchmark_comparison.png")
 
-    metrics_file = PROJECT_ROOT / "outputs" / "evaluation" / "comparison" / "evaluation_metrics.json"
+    metrics_file = (
+        PROJECT_ROOT / "outputs" / "evaluation" / "comparison" / "evaluation_metrics.json"
+    )
     if metrics_file.exists():
         try:
             metrics_data = json.loads(metrics_file.read_text(encoding="utf-8"))
@@ -148,7 +183,9 @@ def generate_benchmark_comparison(output_file: Optional[Path] = None) -> Path:
 
     fig, ax = plt.subplots(figsize=(11, 6))
     palette = {col_base: "#94a3b8", col_ft: "#0284c7"}
-    barplot = sns.barplot(data=df_melted, x="Metric", y="Score (%)", hue="Model", palette=palette, ax=ax)
+    barplot = sns.barplot(
+        data=df_melted, x="Metric", y="Score (%)", hue="Model", palette=palette, ax=ax
+    )
 
     ax.set_title(title, pad=15)
     ax.set_ylim(0, 115)
@@ -204,7 +241,9 @@ def generate_dataset_distribution(output_file: Optional[Path] = None) -> Path:
     sources = ["PubMedQA", "PMC Full-Text", "MedQuAD", "PubMed RCTs"]
     records = [740, 160, 70, 30]
     source_df = pd.DataFrame({"Source": sources, "Records": records})
-    sns.barplot(data=source_df, x="Source", y="Records", hue="Source", legend=False, ax=ax2, palette="crest")
+    sns.barplot(
+        data=source_df, x="Source", y="Records", hue="Source", legend=False, ax=ax2, palette="crest"
+    )
     ax2.set_title("Training Data Composition (880 Articles)", pad=10)
     ax2.set_ylabel("Sample Count")
 

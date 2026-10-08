@@ -11,10 +11,11 @@ Runs the complete end-to-end workflow in an automated sequence:
 
 import argparse
 import os
-from pathlib import Path
 import subprocess
 import sys
 import time
+from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Ensure project root is in path
@@ -43,9 +44,7 @@ def check_environment() -> bool:
         cuda_avail = torch.cuda.is_available()
         gpu_name = torch.cuda.get_device_name(0) if cuda_avail else "CPU Only"
         vram_mb = (
-            torch.cuda.get_device_properties(0).total_memory / (1024 * 1024)
-            if cuda_avail
-            else 0
+            torch.cuda.get_device_properties(0).total_memory / (1024 * 1024) if cuda_avail else 0
         )
 
         print(f"  • Python Runtime : {sys.version.split()[0]}")
@@ -53,8 +52,8 @@ def check_environment() -> bool:
         print(f"  • CUDA Available : {'✅ Yes' if cuda_avail else '❌ No'}")
         print(f"  • Active GPU     : {gpu_name} ({vram_mb:.0f} MB VRAM)")
 
-        import transformers
         import peft
+        import transformers
         import trl
 
         print(f"  • Transformers   : {transformers.__version__}")
@@ -73,22 +72,28 @@ def verify_data() -> bool:
     eval_file = PROJECT_ROOT / "data" / "evaluation" / "BioEvidence-Eval-v0.1.jsonl"
 
     if not train_file.exists() or not eval_file.exists():
-        print(f"  ⚠️ Preparing dataset files from raw sources...")
+        print("  ⚠️ Preparing dataset files from raw sources...")
         subprocess.run(
             [sys.executable, "-m", "src.preprocessing.leakage"],
             check=True,
             cwd=str(PROJECT_ROOT),
         )
 
-    print(f"  • Training Dataset    : {train_file.name} ({train_file.stat().st_size / 1024:.1f} KB)")
+    print(
+        f"  • Training Dataset    : {train_file.name} ({train_file.stat().st_size / 1024:.1f} KB)"
+    )
     print(f"  • Benchmark Dataset   : {eval_file.name} ({eval_file.stat().st_size / 1024:.1f} KB)")
-    print("  • Leakage Status      : 0 overlapping PMIDs between train & test (Strict article grouping)")
+    print(
+        "  • Leakage Status      : 0 overlapping PMIDs between train & test (Strict article grouping)"
+    )
     print("  ✓ Datasets verified.\n")
     return True
 
 
 def run_training(smoke_test: bool = False, epochs: int = 3) -> bool:
-    label = "Verification Smoke Test (2 steps)" if smoke_test else f"Full Fine-Tuning ({epochs} epochs)"
+    label = (
+        "Verification Smoke Test (2 steps)" if smoke_test else f"Full Fine-Tuning ({epochs} epochs)"
+    )
     print_header(f"4-bit QLoRA Training: {label}", "STEP 3/5")
 
     cmd = [sys.executable, "-m", "src.training.train"]
@@ -100,8 +105,8 @@ def run_training(smoke_test: bool = False, epochs: int = 3) -> bool:
     result = subprocess.run(cmd, cwd=str(PROJECT_ROOT))
     if result.returncode == 0:
         print("  ✓ Fine-tuning completed successfully.")
-        print(f"  • Adapter checkpoint saved at: models/adapters/bioevidence-lora-best/")
-        print(f"  • Markdown report updated at: docs/TRAINING_RUN_REPORT.md\n")
+        print("  • Adapter checkpoint saved at: models/adapters/bioevidence-lora-best/")
+        print("  • Markdown report updated at: docs/TRAINING_RUN_REPORT.md\n")
         return True
     else:
         print(f"  ❌ Fine-tuning failed with return code {result.returncode}")
@@ -170,11 +175,13 @@ def run_deployment(token: str | None = None) -> bool:
         print("  • Datasets   : https://huggingface.co/datasets/Bhupati1998/BioEvidence-Datasets")
         print("  • To deploy:")
         print("    1. Add your write token to .env: HF_TOKEN=hf_...")
-        print("    2. Or deploy directly inside the Web App in the 'Hugging Face Hub Deployer' tab!")
+        print(
+            "    2. Or deploy directly inside the Web App in the 'Hugging Face Hub Deployer' tab!"
+        )
         print("  ⏭️ Skipping Hugging Face upload for now.\n")
         return True
 
-    print(f"  🔑 Token detected. Initiating deployment to Hugging Face...")
+    print("  🔑 Token detected. Initiating deployment to Hugging Face...")
     cmd = [sys.executable, "-m", "scripts.publish_to_hf", "--model", "--dataset"]
     result = subprocess.run(cmd, cwd=str(PROJECT_ROOT))
     return result.returncode == 0

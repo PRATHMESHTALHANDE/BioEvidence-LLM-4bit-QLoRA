@@ -2,6 +2,7 @@
 
 import pytest
 from pydantic import ValidationError
+
 from src.dataset.schema import (
     BiomedicalRecord,
     DecisionType,

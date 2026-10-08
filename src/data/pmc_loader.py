@@ -4,18 +4,21 @@ Retrieves and parses open-access biomedical full text articles via the NCBI
 BioC / PMC API, recording license types (CC-BY, CC0, etc.) and section headings.
 """
 
-from datetime import datetime, timezone
 import json
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
+
 import requests
 
 from src.dataset.schema import BiomedicalRecord, Provenance, TaskTaxonomy
 
 logger = logging.getLogger(__name__)
 
-BIOC_PMC_URL = "https://www.ncbi.nlm.nih.gov/research/bionlp/RESTful/pmcoa.cgi/BioC_json/{pmcid}/unicode"
+BIOC_PMC_URL = (
+    "https://www.ncbi.nlm.nih.gov/research/bionlp/RESTful/pmcoa.cgi/BioC_json/{pmcid}/unicode"
+)
 
 
 class PMCLoader:
@@ -54,7 +57,9 @@ class PMCLoader:
             logger.error("Failed fetching PMC %s: %s", clean_pmcid, e)
         return None
 
-    def normalize_bioc(self, pmcid: str, data: Any, retrieval_date: str) -> Optional[BiomedicalRecord]:
+    def normalize_bioc(
+        self, pmcid: str, data: Any, retrieval_date: str
+    ) -> Optional[BiomedicalRecord]:
         """Parse BioC JSON format into BiomedicalRecord."""
         if isinstance(data, list):
             if not data:
@@ -67,7 +72,7 @@ class PMCLoader:
 
         doc = docs[0]
         passages = doc.get("passages", [])
-        
+
         abstract_text = ""
         results_text = ""
         license_str = "CC-BY / PMC Open Access"
@@ -124,5 +129,7 @@ if __name__ == "__main__":
     # Test on a prominent open-access PMC article
     rec = loader.fetch_bioc_json("PMC7095448")
     if rec:
-        norm = loader.normalize_bioc("PMC7095448", rec, datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+        norm = loader.normalize_bioc(
+            "PMC7095448", rec, datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        )
         print("Normalized PMC Record:", norm.id if norm else "Failed")

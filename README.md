@@ -202,7 +202,9 @@ model = PeftModel.from_pretrained(base_model, ADAPTER_REPO_ID)
 model.eval()
 
 # 3. Define Biomedical Evidence & Question
-question = "Does statin therapy reduce 30-day cardiovascular mortality in patients with type 2 diabetes?"
+question = (
+    "Does statin therapy reduce 30-day cardiovascular mortality in patients with type 2 diabetes?"
+)
 context = (
     "BACKGROUND: Cardiovascular events represent the primary source of excess mortality in diabetic patients. "
     "METHODS: In a multi-center randomized controlled trial of 1,200 diabetic adults, subjects were assigned to daily atorvastatin 20mg or placebo. "
@@ -226,7 +228,7 @@ inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
 with torch.no_grad():
     outputs = model.generate(**inputs, max_new_tokens=256, temperature=0.1, do_sample=False)
 
-response_text = tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+response_text = tokenizer.decode(outputs[0][inputs.input_ids.shape[1] :], skip_special_tokens=True)
 print(response_text)
 ```
 

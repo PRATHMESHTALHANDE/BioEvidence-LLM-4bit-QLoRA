@@ -5,13 +5,14 @@ parsing full metadata and transforming records into BiomedicalRecord schemas.
 """
 
 import argparse
-from datetime import datetime, timezone
 import json
 import logging
-from pathlib import Path
 import time
-from typing import Any, Dict, List, Optional
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List
+
 import requests
 
 from src.dataset.schema import BiomedicalRecord, Provenance, TaskTaxonomy
@@ -107,23 +108,28 @@ class PubMedLoader:
 
             # Extract publication types & journal
             pub_types = [
-                "".join(pt.itertext()).strip()
-                for pt in article_node.findall(".//PublicationType")
+                "".join(pt.itertext()).strip() for pt in article_node.findall(".//PublicationType")
             ]
             journal_node = article_node.find(".//Journal/Title")
-            journal = journal_node.text.strip() if journal_node is not None and journal_node.text else ""
+            journal = (
+                journal_node.text.strip() if journal_node is not None and journal_node.text else ""
+            )
 
-            articles.append({
-                "pmid": pmid,
-                "title": title,
-                "abstract": abstract,
-                "journal": journal,
-                "pub_types": pub_types,
-            })
+            articles.append(
+                {
+                    "pmid": pmid,
+                    "title": title,
+                    "abstract": abstract,
+                    "journal": journal,
+                    "pub_types": pub_types,
+                }
+            )
 
         return articles
 
-    def normalize_article(self, art: Dict[str, Any], query: str, retrieval_date: str) -> BiomedicalRecord:
+    def normalize_article(
+        self, art: Dict[str, Any], query: str, retrieval_date: str
+    ) -> BiomedicalRecord:
         """Convert a PubMed article dict into a BiomedicalRecord."""
         pmid = art["pmid"]
         title = art["title"]
@@ -200,7 +206,9 @@ class PubMedLoader:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PubMed Controlled Retrieval Pipeline")
-    parser.add_argument("--query", type=str, default="clinical trial[pt] AND outcome", help="PubMed Search Query")
+    parser.add_argument(
+        "--query", type=str, default="clinical trial[pt] AND outcome", help="PubMed Search Query"
+    )
     parser.add_argument("--max-records", type=int, default=10, help="Max records to retrieve")
     args = parser.parse_args()
 
