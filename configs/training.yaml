@@ -11,9 +11,11 @@ training:
   warmup_ratio: 0.05
   weight_decay: 0.01
   max_grad_norm: 0.3
-  optim: "paged_adamw_8bit" # Conserves VRAM on consumer GPUs
+  device: "cpu" # Hardware engine: "cpu" (thermal-safe, cool laptop operation) or "cuda" (GPU)
+  optim: "adamw_torch" # "adamw_torch" for CPU, "paged_adamw_8bit" for CUDA GPU
+  optim_gpu: "paged_adamw_8bit"
   fp16: false
-  bf16: true # Fallback to fp16 if GPU lacks bf16 support
+  bf16: false # Standard FP32 on CPU prevents quantization overhead
   gradient_checkpointing: true
   logging_steps: 10
   eval_strategy: "steps"

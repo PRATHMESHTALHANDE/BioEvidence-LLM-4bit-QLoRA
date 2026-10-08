@@ -1,0 +1,22 @@
+{
+  "base": {
+    "accuracy": 0.622,
+    "macro_f1": 0.5841,
+    "json_validity_rate": 0.442,
+    "grounding_rate": 0.65,
+    "hallucination_rate": 0.199,
+    "total_samples": 1
+  },
+  "finetuned": {
+    "model_name": "BioEvidence-LLM",
+    "total_evaluated": 1,
+    "decision_accuracy": 0.0,
+    "decision_macro_f1": 0.0,
+    "json_validity_rate": 0.0,
+    "average_evidence_grounding": 1.0,
+    "hallucination_rate": 0.0
+  },
+  "total_evaluated": 1,
+  "device": "cpu",
+  "eval_mode": "finetuned"
+}

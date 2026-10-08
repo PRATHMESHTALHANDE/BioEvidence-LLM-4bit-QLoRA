@@ -18,6 +18,7 @@ htmlcov/
 # Local credentials & secrets
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 token.txt

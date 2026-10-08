@@ -23,6 +23,10 @@ pyarrow>=17.0.0
 pandas>=2.2.0
 numpy>=1.26.0
 
+# Visualization & Analytics
+seaborn>=0.13.0
+matplotlib>=3.8.0
+
 # Experiment Tracking & Web App
 mlflow>=2.15.0
 gradio>=4.40.0
@@ -30,3 +34,4 @@ pyyaml>=6.0.1
 requests>=2.32.0
 tqdm>=4.66.0
 python-dotenv>=1.0.1
+

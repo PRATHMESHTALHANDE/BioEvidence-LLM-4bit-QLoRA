@@ -8,11 +8,11 @@
 
 | Metric | Base Model (Zero-Shot) | Fine-Tuned (BioEvidence-LLM) | Delta / Gain | Why This Metric Matters |
 | :--- | :--- | :--- | :--- | :--- |
-| **Decision Accuracy** | 62.2% | **78.2%** | **`+16.0%`** | Measures if the model correctly identified YES, NO, or MAYBE according to study findings. |
-| **Macro F1 Score** | 0.5841 | **0.7348** | **`+0.1507`** | Balances accuracy across all 3 classes, critically preventing biased overconfidence on rare MAYBE cases. |
-| **JSON Schema Validity** | 44.2% | **98.7%** | **`+54.5%`** | Ensures the model outputs 100% parseable 5-field JSON without markdown corruption or conversational chatter. |
-| **Verbatim Evidence Grounding** | 65.0% | **92.3%** | **`+27.3%`** | Checks that cited evidence sentences exist verbatim in the source study text (p-values, odds ratios). |
-| **Hallucination Rate (Lower is better)** | 19.9% | **3.2%** | **`-16.7%`** | Fraction of generated answers containing invented statistics, sample sizes, or non-existent claims. |
+| **Decision Accuracy** | 0.0% | **0.0%** | **`+0.0%`** | Measures if the model correctly identified YES, NO, or MAYBE according to study findings. |
+| **Macro F1 Score** | 0.0000 | **0.0000** | **`+0.0000`** | Balances accuracy across all 3 classes, critically preventing biased overconfidence on rare MAYBE cases. |
+| **JSON Schema Validity** | 44.2% | **0.0%** | **`+-44.2%`** | Ensures the model outputs 100% parseable 5-field JSON without markdown corruption or conversational chatter. |
+| **Verbatim Evidence Grounding** | 0.0% | **100.0%** | **`+100.0%`** | Checks that cited evidence sentences exist verbatim in the source study text (p-values, odds ratios). |
+| **Hallucination Rate (Lower is better)** | 19.9% | **0.0%** | **`-19.9%`** | Fraction of generated answers containing invented statistics, sample sizes, or non-existent claims. |
 
 ## 2. Qualitative Output Comparison on Real Clinical Sample
 

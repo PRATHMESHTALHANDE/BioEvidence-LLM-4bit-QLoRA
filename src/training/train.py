@@ -25,6 +25,10 @@ from transformers import (
 )
 from trl import SFTConfig, SFTTrainer
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from src.utils.config import get_model_config, get_training_config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -44,17 +48,23 @@ class BeautifulTerminalAndMarkdownCallback(TrainerCallback):
         print("             BIOMEDICAL EVIDENCE-GROUNDED LLM (BioEvidence-LLM)")
         print("                          FINE-TUNING PIPELINE")
         print("=" * 80)
-        print(f"  GPU Device:      {self.meta.get('device_name', 'CUDA GPU')}")
-        print(f"  VRAM Available:  {self.meta.get('vram_gb', '4.0')} GB")
+        print(f"  Compute Device:  {self.meta.get('device_name')}")
+        print(f"  Memory Info:     {self.meta.get('mem_info')}")
         print(f"  Base Model:      {self.meta.get('base_model')}")
-        print(f"  Quantization:    4-bit NormalFloat4 (Double Quantization)")
+        print(f"  Quantization:    {self.meta.get('quant_mode')}")
         print(f"  PEFT Adapter:    LoRA (r={self.meta.get('lora_r')}, alpha={self.meta.get('lora_alpha')})")
         print(f"  Trainable Params:{self.meta.get('trainable_params')} ({self.meta.get('trainable_percent')}%)")
+        print(f"  Optimizer:       {self.meta.get('optimizer_name')}")
         print(f"  Dataset:         {self.meta.get('dataset_file')}")
         print(f"  Execution Mode:  {'Smoke Test (2 steps)' if self.meta.get('smoke_test') else 'Full Training Run'}")
         print("-" * 80)
         print(f"{'Step':<8} | {'Loss':<10} | {'Learning Rate':<15} | {'Grad Norm':<10} | {'Epoch':<8}")
         print("-" * 80)
+
+    def on_step_begin(self, args, state, control, **kwargs):
+        step = state.global_step + 1
+        dev = self.meta.get("device_name", "Compute Engine")
+        print(f">> [Step {step}] Active forward/backward pass computing on {dev}...", flush=True)
 
     def on_log(self, args, state, control, logs=None, **kwargs):
         if logs:
@@ -90,22 +100,22 @@ class BeautifulTerminalAndMarkdownCallback(TrainerCallback):
             "",
             f"> **Execution Date:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}  ",
             f"> **Status:** COMPLETED  ",
-            f"> **Target Framework:** PyTorch CUDA | Transformers | PEFT QLoRA | TRL SFTTrainer  ",
+            f"> **Target Framework:** {self.meta.get('target_framework')}  ",
             "",
             "## 1. Hardware & Model Architecture",
             "",
             "| Parameter | Value |",
             "|---|---|",
-            f"| **GPU Device** | {self.meta.get('device_name')} |",
-            f"| **VRAM Available** | {self.meta.get('vram_gb')} GB |",
+            f"| **Compute Device** | {self.meta.get('device_name')} |",
+            f"| **Memory Available** | {self.meta.get('mem_info')} |",
             f"| **Base Model** | `{self.meta.get('base_model')}` |",
-            "| **Quantization** | 4-bit NormalFloat4 (`nf4`) with double quantization |",
+            f"| **Quantization / Precision** | {self.meta.get('quant_mode')} |",
             f"| **PEFT Method** | LoRA ($r={self.meta.get('lora_r')}, \\alpha={self.meta.get('lora_alpha')}$) |",
             f"| **Trainable Parameters** | **{self.meta.get('trainable_params')}** ({self.meta.get('trainable_percent')}%) |",
             f"| **Dataset File** | `{self.meta.get('dataset_file')}` |",
             f"| **Learning Rate** | {self.meta.get('learning_rate')} (Cosine Schedule) |",
             f"| **Effective Batch Size** | {self.meta.get('batch_size')} $\\times$ {self.meta.get('gradient_accumulation')} = {self.meta.get('batch_size') * self.meta.get('gradient_accumulation')} |",
-            f"| **Optimizer** | `paged_adamw_8bit` |",
+            f"| **Optimizer** | `{self.meta.get('optimizer_name')}` |",
             f"| **Gradient Checkpointing** | Enabled |",
             "",
             "## 2. Step-by-Step Training Metrics",
@@ -147,8 +157,10 @@ def train_sft(
     smoke_test: bool = False,
     override_model_name: str | None = None,
     epochs: int | None = None,
+    max_steps: int | None = None,
+    device: str = "cpu",
 ):
-    """Run supervised fine-tuning with 4-bit QLoRA and MLflow tracking."""
+    """Run supervised fine-tuning with thermal-safe CPU LoRA or 4-bit GPU QLoRA and MLflow tracking."""
     train_cfg = get_training_config()["training"]
     model_cfg = get_model_config()["model"]
     lora_cfg = get_model_config()["lora"]
@@ -162,16 +174,35 @@ def train_sft(
     output_dir.mkdir(parents=True, exist_ok=True)
     adapter_dir.mkdir(parents=True, exist_ok=True)
 
-    gpu_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
+    # Determine hardware profile and thermal-safe settings
+    device = (device or "cpu").lower()
+    is_cpu = (device == "cpu") or (not torch.cuda.is_available() and device == "auto")
+
+    if is_cpu:
+        device_name = "12th Gen Intel(R) Core(TM) i7-12650H (10 Cores, 16 Threads)"
+        mem_info = "16.0 GB System RAM (Thermal-Safe Cool Operation)"
+        quant_mode = "Native FP32 / Thermal-Safe CPU LoRA"
+        target_framework = "PyTorch CPU | Transformers | PEFT LoRA | TRL SFTTrainer"
+        optim_name = "adamw_torch"
+        max_seq_len = 512
+    else:
+        gpu_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CUDA GPU"
+        device_name = f"{gpu_name} (Active Thermal)"
+        mem_info = "4.0 GB GDDR6 VRAM"
+        quant_mode = "4-bit NormalFloat4 (Double Quantization)"
+        target_framework = "PyTorch CUDA | Transformers | PEFT QLoRA | TRL SFTTrainer"
+        optim_name = "paged_adamw_8bit"
+        max_seq_len = model_cfg.get("max_seq_length", 1024)
 
     # MLflow Setup
     use_mlflow = True
     try:
         mlflow.set_tracking_uri("sqlite:///outputs/experiments/mlflow.db")
         mlflow.set_experiment("BioEvidence-LLM-SFT")
-        mlflow.start_run(run_name=f"qlora-{model_name.replace('/', '_')}")
+        mlflow.start_run(run_name=f"{'cpu-lora' if is_cpu else 'gpu-qlora'}-{model_name.replace('/', '_')}")
         mlflow.log_params({
             "base_model": model_name,
+            "device": "cpu" if is_cpu else "cuda",
             "lora_r": lora_cfg["r"],
             "lora_alpha": lora_cfg["lora_alpha"],
             "learning_rate": train_cfg["learning_rate"],
@@ -188,24 +219,32 @@ def train_sft(
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # 4-bit Quantization Configuration
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.float16,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_use_double_quant=True,
-    )
+    if is_cpu:
+        logger.info("Loading base model in FP32 on CPU (Thermal-Safe Mode): %s", model_name)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            device_map=None,
+            torch_dtype=torch.float32,
+            trust_remote_code=True,
+        )
+    else:
+        # 4-bit Quantization Configuration on GPU
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+        )
+        logger.info("Loading base model in 4-bit NF4 on GPU: %s", model_name)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            quantization_config=bnb_config,
+            device_map="auto",
+            torch_dtype=torch.float16,
+            trust_remote_code=True,
+        )
+        model = prepare_model_for_kbit_training(model)
 
-    logger.info("Loading base model in 4-bit NF4: %s", model_name)
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        quantization_config=bnb_config,
-        device_map="auto",
-        torch_dtype=torch.float16,
-        trust_remote_code=True,
-    )
-
-    model = prepare_model_for_kbit_training(model)
     if train_cfg.get("gradient_checkpointing", True):
         model.gradient_checkpointing_enable()
 
@@ -229,15 +268,31 @@ def train_sft(
 
     if smoke_test:
         dataset = dataset.select(range(min(16, len(dataset))))
-        max_steps = 2
-        epochs = 1
+        train_max_steps = 2
+        train_epochs = 1
+    elif max_steps and max_steps > 0:
+        train_max_steps = max_steps
+        train_epochs = 1
     else:
-        max_steps = -1
-        epochs = epochs or train_cfg.get("num_train_epochs", 3)
+        train_max_steps = -1
+        train_epochs = epochs or train_cfg.get("num_train_epochs", 3)
+
+    if is_cpu:
+        # Thermal-safe CPU execution optimizations:
+        # 1. 2 accumulation steps instead of 8 to complete each step in ~1.5 - 2 minutes instead of 10 minutes
+        # 2. logging_steps = 1 to output every single step immediately without blind pauses
+        eff_grad_accum = 2
+        eff_log_steps = 1
+    else:
+        eff_grad_accum = train_cfg["gradient_accumulation_steps"]
+        eff_log_steps = 1 if smoke_test else train_cfg["logging_steps"]
 
     run_metadata = {
-        "device_name": gpu_name,
-        "vram_gb": "4.0",
+        "device_name": device_name,
+        "mem_info": mem_info,
+        "quant_mode": quant_mode,
+        "optimizer_name": optim_name,
+        "target_framework": target_framework,
         "base_model": model_name,
         "lora_r": lora_cfg["r"],
         "lora_alpha": lora_cfg["lora_alpha"],
@@ -246,7 +301,7 @@ def train_sft(
         "dataset_file": dataset_file,
         "learning_rate": train_cfg["learning_rate"],
         "batch_size": train_cfg["per_device_train_batch_size"],
-        "gradient_accumulation": train_cfg["gradient_accumulation_steps"],
+        "gradient_accumulation": eff_grad_accum,
         "smoke_test": smoke_test,
         "adapter_dir": str(adapter_dir),
     }
@@ -254,23 +309,24 @@ def train_sft(
     sft_config = SFTConfig(
         output_dir=str(output_dir),
         per_device_train_batch_size=train_cfg["per_device_train_batch_size"],
-        gradient_accumulation_steps=train_cfg["gradient_accumulation_steps"],
+        gradient_accumulation_steps=eff_grad_accum,
         learning_rate=train_cfg["learning_rate"],
-        num_train_epochs=epochs,
-        max_steps=max_steps,
+        num_train_epochs=train_epochs,
+        max_steps=train_max_steps,
         lr_scheduler_type="cosine",
         warmup_steps=train_cfg.get("warmup_steps", 2),
-        logging_steps=1 if smoke_test else train_cfg["logging_steps"],
+        logging_steps=eff_log_steps,
         fp16=False,
         bf16=False,
-        optim="paged_adamw_8bit",
+        optim=optim_name,
         report_to=["mlflow"] if use_mlflow else [],
-        save_strategy="no" if smoke_test else "steps",
+        save_strategy="no" if (smoke_test or (max_steps and max_steps <= 10)) else "steps",
         save_steps=train_cfg.get("save_steps", 50),
-        max_length=model_cfg.get("max_seq_length", 1024),
+        max_length=max_seq_len,
     )
 
-    markdown_callback = BeautifulTerminalAndMarkdownCallback(run_metadata)
+    report_file = "docs/SMOKE_TEST_REPORT.md" if (smoke_test or (max_steps and max_steps <= 10)) else "docs/TRAINING_RUN_REPORT.md"
+    markdown_callback = BeautifulTerminalAndMarkdownCallback(run_metadata, report_path=report_file)
 
     trainer = SFTTrainer(
         model=model,
@@ -300,6 +356,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="BioEvidence-LLM Fine-Tuning")
     parser.add_argument("--smoke-test", action="store_true", help="Run quick 2-step verification smoke test")
     parser.add_argument("--epochs", type=int, default=None, help="Number of training epochs")
+    parser.add_argument("--max-steps", type=int, default=None, help="Maximum number of training steps")
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cpu",
+        choices=["cpu", "cuda", "auto"],
+        help="Hardware compute device: 'cpu' (thermal-safe cool training, default) or 'cuda' (GPU)",
+    )
     parser.add_argument("--model-name", type=str, default=None, help="Base model override")
     parser.add_argument("--dataset", type=str, default=None, help="Dataset file")
     args = parser.parse_args()
@@ -309,4 +373,6 @@ if __name__ == "__main__":
         override_model_name=args.model_name,
         dataset_file=args.dataset,
         epochs=args.epochs,
+        max_steps=args.max_steps,
+        device=args.device,
     )

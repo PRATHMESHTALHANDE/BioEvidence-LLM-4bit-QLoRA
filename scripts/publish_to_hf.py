@@ -46,6 +46,9 @@ def publish_model(
         )
 
     api = HfApi(token=hf_token)
+    logger.info("Verifying/creating Hugging Face model repository: %s", repo_id)
+    create_repo(repo_id=repo_id, repo_type="model", token=hf_token, private=private, exist_ok=True)
+
     adapter_path = Path(adapter_dir)
     if not adapter_path.exists():
         raise FileNotFoundError(f"Adapter folder not found at: {adapter_path.resolve()}")
@@ -77,7 +80,7 @@ def publish_model(
     url = f"https://huggingface.co/{repo_id}"
     logger.info("Successfully published model to: %s", url)
     print("\n" + "=" * 80)
-    print(f"🎉 Model adapter successfully published to Hugging Face:")
+    print("SUCCESS: Model adapter successfully published to Hugging Face:")
     print(f"   {url}")
     print("=" * 80 + "\n")
 
@@ -103,7 +106,7 @@ def publish_dataset(
             "Hugging Face write token not found! Please provide it via:\n"
             "  1. .env file: HF_TOKEN=hf_...\n"
             "  2. CLI flag: --token hf_...\n"
-            "  3. Or run: .\\.venv\\Scripts\\huggingface-cli.exe login\n"
+            "  3. Or run: huggingface-cli login\n"
             "Get your write token from: https://huggingface.co/settings/tokens"
         )
 
@@ -148,7 +151,7 @@ def publish_dataset(
     url = f"https://huggingface.co/datasets/{repo_id}"
     logger.info("Successfully published dataset to: %s", url)
     print("\n" + "=" * 80)
-    print(f"🎉 Datasets successfully published to Hugging Face:")
+    print("SUCCESS: Datasets successfully published to Hugging Face:")
     print(f"   {url}")
     print("=" * 80 + "\n")
 
