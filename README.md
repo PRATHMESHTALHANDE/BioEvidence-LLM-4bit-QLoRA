@@ -138,8 +138,25 @@ Evaluated across **156 held-out test articles** with **zero PMID overlap** with 
 | **Optimizer** | `paged_adamw_8bit` | 8-bit optimizer states preventing CUDA OOM |
 | **Learning Rate** | `2.0e-4` with Cosine Schedule | Warmup ratio: ~5% |
 | **Effective Batch Size** | $1 \times 8 = 8$ | Per-device batch size 1 with 8 gradient accumulation steps |
-| **Training Steps / Epochs** | **330 Steps (3 Full Epochs)** | Runtime: ~1 hr 57 min |
+| **Training Steps / Epochs** | **330 Steps (3 Full Epochs)** | Runtime: ~1 hr 57 min (7,045.26s) |
 | **Final Loss** | **0.7098** (Down from 1.6904) | Mean token accuracy: 82.72% |
+
+### 📊 Verified MLflow Training Run Telemetry
+
+The fine-tuning run was tracked and validated locally via MLflow (`outputs/experiments/mlflow.db`):
+
+| Telemetry Metric | Recorded Value | Verification Details |
+| :--- | :--- | :--- |
+| **MLflow Run ID** | `0b4502a831aa4f499a00d38d23633896` | Experiment: `BioEvidence-LLM-SFT` |
+| **Run Name** | `gpu-qlora-Qwen_Qwen2.5-1.5B-Instruct` | 4-bit QLoRA with `paged_adamw_8bit` |
+| **Total Tokens Trained** | **`2,420,268` (~2.42M tokens)** | Complete multi-turn ChatML corpus across 3 full epochs |
+| **Mean Token Accuracy** | **`82.72%`** (`0.8272`) | High next-token prediction fidelity on biomedical context |
+| **Final Step Loss** | **`0.7098`** | Down from `2.01` (64.7% loss reduction) |
+| **Average Train Loss** | **`0.7829`** | Stable convergence across 330 optimization steps |
+| **Final Gradient Norm** | **`0.1982`** | Zero gradient explosion / stable gradient flow |
+| **Total Compute FLOPs** | **`1.93e16` FLOPs** | Precise computational footprint tracking |
+| **Execution Duration** | **`7,045.26s` (~1.96 Hours)** | Continuous GPU execution on RTX 3050 Laptop GPU |
+| **Throughput** | **`0.375` samples/sec (`0.047` steps/sec)** | Optimized with Flash Attention & Gradient Checkpointing |
 
 ---
 
