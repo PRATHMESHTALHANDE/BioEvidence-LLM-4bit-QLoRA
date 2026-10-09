@@ -20,6 +20,9 @@ size_categories:
 ## Dataset Summary
 The **BioEvidence-SFT** and **BioEvidence-Eval** datasets are curated instruction-tuning and benchmarking corpora designed for evidence-grounded biomedical NLP tasks.
 
+- **GitHub Repository (Code & Pipeline):** [https://github.com/PRATHMESHTALHANDE/BioEvidence-LLM-4bit-QLoRA](https://github.com/PRATHMESHTALHANDE/BioEvidence-LLM-4bit-QLoRA)
+- **Model Adapter:** [https://huggingface.co/Bhupati1998/BioEvidence-LLM-1.5B](https://huggingface.co/Bhupati1998/BioEvidence-LLM-1.5B)
+
 ## Subsets & Splits
 - **BioEvidence-SFT-v0.1:** 100 balanced pilot samples across all 7 taxonomy tasks (100% human-rubric validated).
 - **BioEvidence-SFT-full:** 880 multi-source training samples formatted in ChatML format.
